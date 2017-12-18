@@ -58,14 +58,17 @@
 <ul>
 <li>鈴木祥太 27115076</a>: 課題7-5担当</li>
 <li>鈴木進也 27115077</a>: 課題担当</li>
-<li>丹羽貴敏 27115120</a>: 課題担当</li>
+<li>丹羽貴敏 27115120</a>: 課題7-3,7-5担当</li>
 <li>横尾由春 27115157</a>: 課題7-1 ,課題7-7担当</li>
 </ul>
 
 <h2>ソースファイル</h2>
 <ul>
 	<li><a href="./Dining.java">Dining.java</a>(課題7-7)</li>
-
+  <li><a href="../../Planner/src/Planner.java">Planner.java</a>
+  <li><a href="../../Planner/src/Searchplus.java">Searchplus.java</a>
+  <li><a href="../../Planner/src/GraphFrame.java">GraphFrame.java</a><br>
+GraphFrameを実行すればGUIが立ち上がる。<br>
     <!-- 実装・変更したソースファイルへのリンク．修正する． -->
     <!-- ※ リンクは絶対パスに変更せず，上記のような相対パスのままで！ -->
 </ul>
@@ -223,6 +226,448 @@ private Vector initGoalList(){
 </br>
 なお10回実行してみたが全て同じ結果を得ている。</br>
 </p>
+<h2>課題7-3</h2>
+<!-- 課題を書く．-->
+上記7-2で改良したプランニングシステムのGUIを実装せよ．<br>
+ブロック操作の過程をグラフィカルに可視化し，初期状態や目標状態をGUI上で変更できることが望ましい． <br>
+<h3>独自仕様の説明</h3>
+<!--
+ もし自分で独自に決めた仕様があれば，その説明を書く．
+-->
+ファイル名を入力してロードボタンを押すとテキストエリアに内容が表示される。<br>
+テキストエリアに内容を書き込んだり削除したりしてセーブボタンを押すと内容が保存される。<br>
+プランニング実行ボタンを押すとテキストエリアにプランが表示される。<br>
+状態図生成ボタンを押すと別枠で図が表示され、次へボタンを押すとプランを順に実行していく。<br>
+<h3>プログラムの構造</h3>
+<!--  どのような設計をしたか．-->
+追加した部分のみ記載する。<br>
+GraphFrameではGUIを作成している。<br>
+actionPerformedメソッドではボタンがクリックされたときの動作について書いてある。<br>
+Searchplusでは現在の状態のブロックを表示している。<br>
+Plannerクラスでは新たにplandoingメソッド、getblockメソッド、start2メソッド、restartメソッド、initGoalListfileメソッド、initInitialStatefileメソッドを追加した。<br>
+plandoingメソッドは引数に現在の状態のベクターと実行するプランをString型でとりプラン実行後のベクターを返す。<br>
+getblockメソッドは現在のブロックの状態をArrayListにして返すものである。<br>
+start2メソッドは初期状態、目標状態のファイル名をString型でとり、ファイルから読み込むようにしてある。<br>
+restartメソッドは目標状態のファイル名と現在の状態を引数にとり現在の状態から再度プランニングを行うものである。<br>
+initGoalListfileメソッドは引数にString型の変数をとり、そのファイルからgoalListを読み込んでいる。<br>
+initInitialStatefileメソッドは引数にString型の変数をとり、そのファイルからinitialStateを読み込んでいる。<br>
+<h3>実装の説明</h3>
+<!--
+ どう実装したか，ソースコードを詳細に説明する．
+ 特に重要な箇所はレポートにペーストして説明する．
+-->
+actionPerformedメソッドではセーブボタンが押されたときは
+<pre class="brush:java">
+			if (rulefilename.getText().equals("")) {
+				error.setText("Please write rulelist-filename");
+				dialog.setVisible(true);
+			} else {
+				try {
+					String filename = rulefilename.getText();
+					BufferedWriter in = new BufferedWriter(
+							new OutputStreamWriter(new FileOutputStream(
+									filename), "UTF-8"));
+					String[] s = rule.getText().split("\n");
+					rulelist.clear();
+					for (String str : s) {
+						rulelist.add(str);
+					}
+					for (String str : rulelist) {
+						in.write(str);
+						in.newLine();
+					}
+					in.close();
+				} catch (IOException e) {
+					error.setText("Error!!");
+					dialog.setVisible(true);
+				}
+			}
+</pre>
+ファイル名がなければそのことを表示させて、ファイル名があった場合は一行ずつ配列に文章をいれる。<br>
+それをリストに入れてファイルに書き込んでいる。<br>
+ロードボタンが押されたとき
+<pre class="brush:java">
+			if (rulefilename.getText().equals("")) {
+				error.setText("Please write filename");
+				dialog.setVisible(true);
+			} else {
+				try {
+					String filename = rulefilename.getText();
+					BufferedReader in = new BufferedReader(
+							new InputStreamReader(
+									new FileInputStream(filename), "UTF-8"));
+					rulelist.clear();
+					for (String line = in.readLine(); line != null; line = in
+							.readLine()) {
+						rulelist.add(line);
+					}
+					rule.setText("");
+					for (String s : rulelist) {
+						rule.append(s + "\n");
+					}
+				} catch (IOException e) {
+					error.setText("File is not exist");
+					dialog.setVisible(true);
+				}
+			}
+</pre>
+ファイル名が入力されていないときはセーブのときと同じである。<br>
+一度リストをクリアして新しくファイルから読み込みを行っている。<br>
+その後テキストを一端からにして1つずつテキストに改行しながら書き込みを行っている。<br>
+<pre class="brush:java">
+			if (asfilename.getText().equals("")
+					|| rulefilename.getText().equals("")) {
+			} else {
+				try{
+				String filename = asfilename.getText();
+				String filename1 = rulefilename.getText();
+				BufferedReader in = new BufferedReader(
+						new InputStreamReader(
+								new FileInputStream(filename), "UTF-8"));
+				aslist.clear();
+				for (String line = in.readLine(); line != null; line = in
+						.readLine()) {
+					aslist.add(line);
+				}
+				as.setText("");
+				for (String str : aslist) {
+					System.out.println(str);
+					as.append(str + "\n");
+				}
+				BufferedReader in1 = new BufferedReader(
+						new InputStreamReader(
+								new FileInputStream(filename1), "UTF-8"));
+				rulelist.clear();
+				for (String line = in1.readLine(); line != null; line = in1
+						.readLine()) {
+					rulelist.add(line);
+				}
+				rule.setText("");
+				for (String s : rulelist) {
+					rule.append(s + "\n");
+				}
+				Planner.start2(filename, filename1);
+				Img.setText("");
+				for (int i = 0; i < Planner.plan.size(); i++) {
+					Operator op = (Operator) Planner.plan.elementAt(i);
+					Img.append((String) op.instantiate(Planner.re).name + "\n");
+				}
+				}
+				catch (IOException e) {
+					error.setText("File is not exist");
+					dialog.setVisible(true);
+				}
+			}
+		} 
+</pre>
+初期状態、目標状態のファイル名がちゃんと書き込まれている場合はそこからプランニングを行い、得られたプランをテキストエリアに書き込んでいる。<br>
+状態図生成ボタンが押されたとき
+<pre class="brush:java">
+				try {
+					counter = 0;
+					String filename = asfilename.getText();
+					String filename1 = rulefilename.getText();
+					BufferedReader in = new BufferedReader(
+							new InputStreamReader(
+									new FileInputStream(filename), "UTF-8"));
+					aslist.clear();
+					for (String line = in.readLine(); line != null; line = in
+							.readLine()) {
+						aslist.add(line);
+					}
+					as.setText("");
+					for (String str : aslist) {
+						System.out.println(str);
+						as.append(str + "\n");
+					}
+					BufferedReader in1 = new BufferedReader(
+							new InputStreamReader(
+									new FileInputStream(filename1), "UTF-8"));
+					rulelist.clear();
+					for (String line = in1.readLine(); line != null; line = in1
+							.readLine()) {
+						rulelist.add(line);
+					}
+					rule.setText("");
+					for (String s : rulelist) {
+						rule.append(s + "\n");
+					}
+
+					Planner.start2(filename, filename1);
+					Planner.state = Planner.initInitialStatefile(filename);
+					Planner.getblock(Planner.state);
+					Img.setText("");
+					for (int i = 0; i < Planner.plan.size(); i++) {
+						Operator op = (Operator) Planner.plan.elementAt(i);
+						Img.append((String) op.instantiate(Planner.re).name
+								+ "\n");
+					}
+					Searchplus app = new Searchplus();
+					JScrollPane a = new JScrollPane(app);
+					a.setBounds(1000, 1000, 1000, 1000);
+					frame4.setVisible(false);
+					frame4 = new JFrame();
+					frame4.add(a);
+					frame4.add(move, BorderLayout.NORTH);
+					frame4.pack();
+					frame4.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					frame4.setVisible(true);
+				} catch (IOException e) {
+					error.setText("File is not exist");
+					dialog.setVisible(true);
+				}
+				flag = false;
+
+			}
+</pre>
+テキストエリアからファイル名を読み込んでプランニングを実行する。<br>
+初期状態を設定して、最初なのでgetblockメソッドによりブロックの最初の状態をArrayListに変換する。<br>
+プランニングの結果をテキストエリアに表示させてブロック状態の画像表示を行っている。<br>
+次へボタンが押された際は
+<pre class="brush:java">
+			if (counter < Planner.doplan.size()) {
+				k = Planner.plandoing(Planner.doplan.get(counter),
+						Planner.state);
+				counter++;
+				System.out.println(Planner.state);
+				Searchplus app = new Searchplus();
+				JScrollPane a = new JScrollPane(app);
+				a.setBounds(1000, 1000, 1000, 1000);
+				frame4.add(a);
+				frame4.add(move, BorderLayout.NORTH);
+				frame4.pack();
+				frame4.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				frame4.setVisible(true);
+			}
+</pre>
+if文では実行可能なプランを順番に試している。<br>
+その後図を再描画している。<br>
+SearchplusのpaintComponetメソッドでは最初にブロックの状態を記録したArrayListをもってくる。<br>
+<pre class="brush:java">
+		for (int j = 0; j < i; j++) {
+			ArrayList&ltString&gt nameline = namelist.get(j);
+			//System.out.println(nameline);
+			int y = 90;
+			int high = 0;
+			for (String s : nameline) {
+				g2.draw(new Rectangle2D.Double(j * 300.0d, (Planner.name.size() * 190.0 - x) * 1.0 - (y * high) * 1.0d,
+						160.0d, 90.0d));
+				g2.drawString(s, j * 300 + 70, Planner.name.size() * 190 - x + 40 - high * 90);
+				high++;
+			}
+		}
+</pre>
+ブロックの状態を1列ずつ取り出す。<br>
+取り出したArrayListに対して1つずつ要素を取り出して四角形とブロック名を表示させる。<br>
+<pre class="brush:java">
+		g2.draw(new Rectangle2D.Double(300.0d, (Planner.name.size() * 190.0-x + 130) * 1.0d, 160.0d, 90.0d));
+		g2.drawString("holding", 300, (Planner.name.size() * 190 -x + 120) * 1);
+		if (!Planner.hold.equals("")) {
+			g2.drawString(Planner.hold, 300 + 50, (Planner.name.size() * 190 -x+170) * 1);
+		}
+</pre>
+上2つは手に持っているブロックを表示させるための枠と文字である。<br>
+String型変数holdには手に持っているブロック名が記述されているのでもし存在すれば表示する。<br>
+<pre class="brush:java">
+		g2.draw(new Line2D.Double(0.0d, Planner.name.size() * 190.0d-x+90.0d, Planner.name.size() * 300.0d,
+				Planner.name.size() * 190.0d-x+90.0d));
+</pre>
+ここではブロックの最下層に線を引いてテーブルを表現している。<br>
+plandoingメソッドは実行されるプランは今回4種類のみなので正規表現をもちいてどのパターンなのかを分類する。<br>
+まずPlace x on yのとき<br>
+<pre class="brush:java">
+			String x =mat1.group(1);
+			String y =mat1.group(2);
+			String check = "clear "+y;
+			String check1= "holding "+x;
+</pre>
+正規表現により該当するブロック名を持ってくる。<br>
+clear yとholding xを削除する必要があるのでString型の変数に入れてある。<br>
+<pre class="brush:java">
+
+			 for(int j = 0 ; j < now.size() ; j++){
+				 String a = (String)now.get(j);
+				 boolean flag = true;
+				 if(a.equals(check)){
+					 flag=false;
+				 }
+				 if(a.equals(check1)){
+					 flag=false;
+				 }
+				 if(flag){
+					 re.addElement(a);
+				 }
+			 }
+</pre>
+現在の状態を１つずつ取り出して、もしdeleteするものならflagをfalseにして返却するVectorに入れないようにしてある。<br>
+<pre class="brush:java">
+			 hold ="";
+			 for(int i =0; i < namelist.size();i++){
+				 ArrayList&ltString &gt memo = namelist.get(i);
+				 if(memo.contains(y)){
+					 memo.add(x);
+				 }
+				 namelist.remove(i);
+				 namelist.add(i,memo);
+			 }
+</pre>
+このオペレータでは手に持ったブロックをおくので持っているブロックの名前を削除する。<br>
+またブロックがおかれている状態のリストを取り出して下のブロックがあるところのリストに上のブロックを追加している。<br>
+<pre class="brush:java">
+				re.addElement(x+" on "+y);
+				re.addElement("clear "+x);
+				re.addElement("handEmpty");
+</pre>
+ここではaddするものを追加している。<br>
+remove x from on top yのとき<br>
+状態の削除、追加のやり方は先ほどと同じなので説明を省略する。<br>
+ブロック操作では
+<pre class="brush:java">
+			 hold = y;
+			 for(int i =0; i < namelist.size();i++){
+				 ArrayList&ltString &gt memo = namelist.get(i);
+				 if(memo.contains(y)){
+					 for(int j =0; j < memo.size();j++){
+						String s = memo.get(j);
+						if(s.equals(x)){
+							memo.remove(j);
+						}
+					 }
+				 }
+				 namelist.remove(i);
+				 namelist.add(i,memo);
+			 }
+
+</pre>
+リストの順番に取り出してxがあったらそこを取り除くものである。<br>
+pick up x from the tableのとき<br>
+状態の削除、追加のやり方は先ほどと同じなので説明を省略する。<br>
+ブロック操作では
+<pre class="brush:java">
+			 hold =x;
+			 for(int i =0; i < namelist.size();i++){
+				 ArrayList&ltString &gt memo = namelist.get(i);
+				 if(memo.contains(x)){
+					 memo.remove(0);
+				 }
+				 namelist.remove(i);
+				 namelist.add(i,memo);
+			 }
+</pre>
+xが含まれていたら取り除くようになっている。<br>
+put x down on the tableのとき<br>
+状態の削除、追加のやり方は先ほどと同じなので説明を省略する。<br>
+ブロック操作では
+<pre class="brush:java">
+			for (int i = 0; i < namelist.size(); i++) {
+				ArrayList&ltString&gt memo = namelist.get(i);
+				if (memo.size() == 0) {
+					memo.add(x);
+					namelist.remove(i);
+					namelist.add(i, memo);
+　　　　　　　　　　　　　　　　　　　　break;
+				}
+			}
+</pre>
+tableにおくのでサイズが0であるリストに追加している。<br>
+追加は1回だけなのでbreakしている。<br>
+getblockメソッドではまずontable x とholding yのブロックを探す。<br>
+初期状態に対してチェックを行う。<br>
+<pre class="brush:java">
+			if (mat1.find()) {
+				String name1 = mat1.group(1);
+				if (!name.contains(name1)) {
+					name.add(name1);
+					ArrayList&ltString&gt n = new ArrayList&ltString&gt();
+					n.add(name1);
+					namelist.add(n);
+
+				}
+			} else if (mat2.find()) {
+				String name1 = mat2.group(1);
+				hold = name1;
+				if (!name.contains(name1)) {
+					name.add(name1);
+				}
+			}
+		}
+</pre>
+ontableに対してはnameという名前リストに追加して新しくArrayListを新しく作成してそれをnamelistに保存している。<br>
+holdingに対してはholdというString型変数に保存してnameに保存している。<br>
+<pre class="brush:java">
+		boolean check = true;
+		while (check) {
+			check = false;
+			for (int i = 0; i < initialState.size(); i++) {
+				String state = (String) initialState.elementAt(i);
+				Pattern pat1 = Pattern.compile("(.+) on (.+)");
+				Matcher mat1 = pat1.matcher(state);
+				if (mat1.find()) {
+					String name1 = mat1.group(1);
+					String name2 = mat1.group(2);
+					if (!name.contains(name1)) {
+						for (int j = 0; j < namelist.size(); j++) {
+							ArrayList&ltString&gt a = namelist.get(j);
+							if (a.contains(name2) && !a.contains(name1)) {
+								namelist.remove(j);
+								check = true;
+								name.add(name1);
+								a.add(name1);
+								namelist.add(j, a);
+							}
+						}
+					}
+				}
+			}
+		}
+</pre>
+ここではnameの変更がなくなるまで状態のチェックを行っている。<br>
+上の方になっているブロックの名前を追加し、namelistに追加をしている。<br>
+またこのように変更のした場合はbooleanをtrueに変更してwhile文が続くようにしている。<br>
+リストが変わらなくなったら
+<pre class="brush:java">
+		for (int i = namelist.size(); i < name.size(); i++) {
+			ArrayList&ltString&gt a = new ArrayList&ltString&gt();
+			namelist.add(a);
+		}
+</pre>
+ここでは空のリストをnamelistに追加している。<br>
+start2メソッドでは
+<pre class="brush:java">
+		Vector goalList = initGoalListfile(goalfile);
+		Vector initialState = initInitialStatefile(infile);
+
+</pre>
+ここでファイル名から目標状態と初期状態を読み込んでいる。<br>
+プランニングを行った後は
+<pre class="brush:java">
+		re.clear();
+		for (Enumeration e = theBinding.keys(); e.hasMoreElements();) {
+			String key = (String) e.nextElement();
+			String value = (String) theBinding.get(key);
+			re.put(key, value);
+		}
+		doplan.clear();
+		for (int i = 0; i < plan.size(); i++) {
+			Operator op = (Operator) plan.elementAt(i);
+			System.out.println((op.instantiate(theBinding)).name);
+			doplan.add((op.instantiate(theBinding)).name);
+		}
+</pre>
+ここでハッシュテーブルをコピーして、プランを保存している。<br>
+restartメソッドでは初期状態を引数で与えてもらって再度プランニングをしているだけである。<br>
+initGoalListfileメソッド、initInitialStatefileメソッドではファイルから読み込んだ行を1行ずつVectorに追加しているだけなので説明を省略する。<br>
+<h3>実行例</h3>
+<!-- 実行例を示す．PNGやGIF等の絵を張っても良い．-->
+<img src = "taka1.png"><br>
+この状態で状態図の動きを見てみる。<br>
+<img src = "taka2.png" width = "600" height="400">
+<img src = "taka3.png"width = "600" height="400">
+<img src = "taka4.png"width = "600" height="400">
+<img src = "taka5.png"width = "600" height="400">
+<img src = "taka6.png"width = "600" height="400">
+<img src = "taka7.png"width = "600" height="400"><br>
+プラン通りの動きをしており結果が正しいことがわかる。<br>
 
 
 <h2>発展課題7-5</h2>
@@ -315,7 +760,10 @@ private Vector initGoalList(){
   replaceBindings() メソッドは引数としてクラス String 型の変数 preString, クラス String 型の変数 postString を取り，preStringをハッシュ値として持つキーのハッシュ値をpostStringに変更する．<br>
   var() メソッドは引数としてクラス String 型の変数 str1 を取り，str1が変数なら戻り値としてtrueを返す．
 </p>
-
+<h4>GraphFrameクラス</h4>
+<p>
+actionPerformedメソッドにボタンを追加した。<br>
+</p>
 
 <h3>実装の説明</h3>
 <!--
@@ -866,8 +1314,78 @@ private Vector initGoalList(){
 <p>
   var() メソッドについて特筆すべき点は，Stringクラスの startsWith() メソッドを使用して，引数として与えられたクラス String 型の変数 str1 がパターンマッチングにおける変数かどうか確かめ，変数ならtrueを，そうでないならfalseを返している点である．
 </p>
+<h4>GUI関連での変更</h4>
+actionPerformedメソッドにボタンを追加した。<br>
+<pre class="brush:java">
+	String order = query.getText();
+</pre>
+ここで命令文を読み込んでいる。<br>
+まず初期状態に関する命令の場合は
+<pre class="brush:java">
+					String filename = asfilename.getText();
+					BufferedWriter in = new BufferedWriter(
+							new OutputStreamWriter(new FileOutputStream(
+									filename), "UTF-8"));
+					String[] s1 = as.getText().split("\n");
+					aslist.clear();
+					for (String str : s1) {
+						aslist.add(str);
+					}
+					String orderInitialState = order.substring(0,
+							order.indexOf("in initialState") - 1);
+					// System.out.println(orderInitialState);
+					aslist = Planner.changeInitialState(aslist,
+							orderInitialState);
 
-
+					for (String str : aslist) {
+						in.write(str);
+						in.newLine();
+					}
+					in.close();
+					as.setText("");
+					for (String str : aslist) {
+						System.out.println(str);
+						as.append(str + "\n");
+					}
+</pre>
+ファイル名を読み込む。<br>
+changeInitialStateメソッドをもちいてリストを変更しテキストエリアの書き換えを行う。<br>
+目標状態に関する命令の場合も同様である。<br>
+ブロック操作の場合はcheckOrderメソッドをもちいて現在の状態でそのプランが実行できるかを調べる。<br>
+実行可能の場合はplandoingをもちいて状態を更新してブロックの状態を更新している。<br>
+画面を更新した後は
+<pre class="brush:java">
+					Planner.restart(filename1, Planner.state);
+					Planner.state = memory;
+					// System.out.println(Planner.state);
+					Img.setText("");
+					for (int i = 0; i < Planner.plan.size(); i++) {
+						Operator op = (Operator) Planner.plan.elementAt(i);
+						Img.append((String) op.instantiate(Planner.re).name
+								+ "\n");
+					}
+</pre>
+restartメソッドをもちいて再度プランニングを実施する。<br>
+初期状態をもとに戻した後、得たプランをテキストエリアに表示している。<br>
+changeInitialStateメソッドでは命令文の最初の文字に応じて操作が変わる。<br>
+追加する場合は命令部分をsubstringで取り除いた後
+<pre class="brush:java">
+			if (!initialState.contains(order)) {
+				initialState.add(order);
+			}
+</pre>
+条件にすでに含まれていなければ追加されるようになっている。<br>
+削除する場合も同様に命令部分をsubstringで取り除く。<br>
+その後
+<pre class="brush:java">
+			if (initialState.contains(order)) {
+				// System.out.println(order);
+				initialState.remove(initialState.indexOf(order));
+			}
+</pre>
+初期状態に含まれていたらそれを取り除くようになっている。<br>
+changeGoalListメソッドでは文章から目標状態の変更を行っている。<br>
+プログラムは基本的にchengeInitialStateメソッドと同じなので説明を省略する。<br>
 <h3>実行例</h3>
 <!-- 実行例を示す．PNGやGIF等の絵を張っても良い．-->
 <h4>途中で自然言語によるブロックの操作を行わない場合</h4>
@@ -1086,8 +1604,25 @@ private Vector initGoalList(){
 <p>
   正しい出力が得られた．
 </p>
-
-
+<h4>GUI上での実行例</h4>
+<img src = "taka8.png"width = "600" height="400">
+<img src = "taka9.png"width = "600" height="400"><br>
+ちゃんと追加されている。<br>
+<img src = "taka10.png"width = "600" height="400">
+<img src = "taka11.png"width = "600" height="400"><br>
+ちゃんと削除されている。<br>
+<img src = "taka12.png"width = "600" height="400">
+<img src = "taka13.png"width = "600" height="400"><br>
+ちゃんと追加されている。<br>
+<img src = "taka14.png"width = "600" height="400">
+<img src = "taka15.png"width = "600" height="400"><br>
+ちゃんと削除されている。<br>
+<img src = "taka16.png"width = "600" height="400">
+<img src = "taka17.png"width = "600" height="400"><br>
+この状態で命令を実行すると<br>
+<img src = "taka19.png"width = "600" height="400">
+<img src = "taka18.png"width = "600" height="400"><br>
+指示通りブロックが動かされておりプランも更新されている。<br>
 <!-- 画像ファイルを貼る場合は <img> タグを使う -->
 <h2>発展課題7-7</h2>
 <!-- 以下，上記と同様 -->
@@ -1288,13 +1823,110 @@ Aが置いたフォーク1とフォーク5を手に取りAを食事状態とす�
 ゴールリストから分解対象を取り出すのは上から順番であるため、"A on B"を取り出し、AをBの上にのせる手順を確定させてしまうためにこのエラーが起こる。</br>
 <b>解決策</b></br>
 目標状態を格納するときに位置が下からとなるようにソートし、GoalListに格納する。</br></br></br>
+<h3>課題7-3</h3>
+plandoingを実行する際のプランはプランニングによって導き出されたプランであるので確実にその状態で実行可能であるプランであると考えた。<br>
+したがってif部が成立するかどうかのチェックは不必要と考え、addとdeleteのみの処理を記述してある。<br>
+Place x on yのときに
+<pre class="brush:java">
+			 for(int i =0; i < namelist.size();i++){
+				 ArrayList&ltString &gt memo = namelist.get(i);
+				 if(memo.contains(y)){
+					 memo.add(x);
+				 }
+				 namelist.remove(i);
+				 namelist.add(i,memo);
+			 }
+</pre>
+実行できるプランなのでxは手に持っている状態なのでnamelistから削除する必要はなくyはnamelistの一番上にあることは明確である。<br>
+したがってyが含まれているリストにaddをするだけでブロックが上に置かれたことを表現することができるようになっている。<br>
+そのように作成したリストをremoveで取り除いた後、同じ場所にaddしている。<br>
+このようにすることでブロックの位置が変化することなくその場でやりとりすることが可能になっている。<br>
+remove x from on top yのときブロック操作にいおいて
+<pre class="brush:java">
+					 for(int j =0; j < memo.size();j++){
+						String s = memo.get(j);
+						if(s.equals(x)){
+							memo.remove(j);
+						}
+					 }
+</pre>
+としたが実行できるプランであるはずなのでxはyが含まれるブロックの一番上にあるはずである。<br>
+したがって順番にたどっていき見つかったら取り除くのではなく最後尾の要素を削除するだけでよいはずなので改善すべきである。<br>
+pick up x from the tableのときブロック操作において
+<pre class="brush:java">
+			 for(int i =0; i < namelist.size();i++){
+				 ArrayList&ltString &gt memo = namelist.get(i);
+				 if(memo.contains(x)){
+					 memo.remove(0);
+				 }
+				 namelist.remove(i);
+				 namelist.add(i,memo);
+			 }
+</pre>
+仮定よりブロックxはtableの上に置いてあるはずであり、そこに積み上げられているブロックの数は1つだけである。<br>
+したがってremoveで先頭の要素を取り除いている。<br>
+要素数が0になったとしても削除せずにnamelistに残しておくことで他のブロックの位置が変わってしまうことを防いでいる。<br
+put x down on the tableのときブロック操作において<br>
+<pre class="brush:java">
+			for (int i = 0; i < namelist.size(); i++) {
+				ArrayList&ltString&gt memo = namelist.get(i);
+				if (memo.size() == 0) {
+					memo.add(x);
+					namelist.remove(i);
+					namelist.add(i, memo);
+　　　　　　　　　　　　　　　　　　　　break;
+				}
+			}
+</pre>
+tableにおくためにはリストが空のところに追加すればよい。<br>
+追加は一度だけでいいのでbreakで複数箇所におかないように対応している。<br>
+getblockメソッドでは
+<pre class="brush:java">
+			if (mat1.find()) {
+				String name1 = mat1.group(1);
+				if (!name.contains(name1)) {
+					name.add(name1);
+					ArrayList&ltString&gt n = new ArrayList&ltString&gt();
+					n.add(name1);
+					namelist.add(n);
 
+				}
+			} else if (mat2.find()) {
+				String name1 = mat2.group(1);
+				hold = name1;
+				if (!name.contains(name1)) {
+					name.add(name1);
+				}
+			}
+		}
+</pre>
+ontableのものはまだブロックを記憶していないもののはずなので新たにArrayListを作成してnamelistに保存している。<br>
+このようにすることでベースとなるリストが作成可能になっている。<br>
+holdingは1つしかできないはずなのでString型の変数にそのまま保存するだけで十分である。<br>
+その下のwhile文ではx on yしかチェックをしていない。<br>
+ontableとholdingをチェックし終わっているので残るブロックは必ず何かのブロックの上にあるはずである。<br>
+そのためチェックするのはx on yだけでいい。<br>
+<pre class="brush:java">
+		for (int i = namelist.size(); i < name.size(); i++) {
+			ArrayList&ltString&gt a = new ArrayList&ltString&gt();
+			namelist.add(a);
+		}
+</pre>
+namelistのサイズは最大でブロックがすべて横に並んでいる状態が考えられるのでブロックが積まれていない部分に空のリストを追加している。<br>
+このようにすることでnamelistのサイズを変える必要がなくなっている。<br>
+図を描画する際は同じフレーム内で表現したかったがやり方がわからなかったので別でフレームを表示するという手法をとった。<br>
+オペレータは固定にしてあるのでそこも改善する必要がある。<br>
+パターンマッチかなにかをもちいて削除する状態や追加する状態を取得するようにした方がよりよくなるはずである。<br>
 <b>課題7-5</b><br>
 <h3>自然言語の命令文を実行するタイミング</h3>
 <p>
 今回，ユーザが自然言語の命令文によってブロックを操作をしたり，初期状態／目標状態を変更したりできるようにするという課題であったが，ブロックの操作はプランニングを1ステップずつ進めていくときに実行し，初期状態／目標状態の変更はプランニングの実行前に行うのが自然と感じたため，そのように実装した．課題の出題としてはどのタイミングで行うかについての指定がなかったため，きちんと自分でどのタイミングで行うべきかについて考えて課題に取り組んだ．この手法は素晴らしいと言える．実装法としては，初期状態と目標状態の初期化が終わったら，プログラム中の自然言語の命令文により初期状態／目標状態の変更をして，プランニングを実行するようになっている．プランニングを実行すると初期状態が実行前から変更されてしまうため，プランニングの実行前に別のオブジェクトに保存してからプランニングを実行し，プランニング実行後に初期状態を復元して，プランニングにより得られた実行するオペレータの集合からオペレータを1つずつ読み出すことで，コンソール上で1ステップずつプランニングを実行している．コンソール上で1ステップずつプランニングを実行しつつ，標準入力により自然言語のブロック操作を実行する命令文を得て，その命令文が実行可能であればその時点の状態に対し入力されたブロック操作の命令を実行している．</p><h3>GUIへの移植を考えた設計</h3><p>  また，前回の課題6でグループ課題である以上はコードを共有することになるため，プログラムの設計を話し合った上で課題に取り組んだらスムーズに課題に取り組めたことを踏まえて，今回もプログラムの設計を話し合いながら課題を進めていった．特に課題7-3のGUIの実装を担当している27115120丹羽君と，直接話したりSlackを使用したりして，どの操作をメソッドとして用意するかやメソッドの引数について話し合いながら課題に取り組んだ．そのおかげか，自分の担当している箇所を課題7-3のGUIのソースコードに移植することがかなり楽にできたようであった．前回の課題で学んだ課題に対する良い取り組み方を忘れずに，今回の課題においても行えたことは非常に良い．失敗から学ぶのも大事だが，成功を忘れないのも大事である．</p>
-<h3>Slackの活用</h3><p>  さらに，今回の課題7ではグループの進捗管理や成果物共有のツールとしてSlackを使用した．GitHubより敷居が低く，直感的な操作が行える上に，話し合いができるというのが決めてであった．前回の課題6で使用したGitHubももちろん使用したが，GitHubはプログラムがほぼ完成してから他の人のソースコードに移植するときに使用し，Slackは課題に取り組む上の話し合いやちょっとしたメソッドなど短いコードの共有に使用するという使い分けをした．Slackを介して話し合うことで勝手に話し合いのログが取れたりするので，話し合いの内容を忘れてしまってもログを見て思い出すことができたりと，かなり快適なツールであった．Slackについて，他の進捗管理や成果物共有のツールと比較しつつ，ベストな使い方ができたと言える．今後のプレゼン作成の際にも使用していきたい．</p><h3>課題量の見積もり</h3><p>  今回はできなかったが，課題量の見積もりをもっと正確にするべきである．前回の課題6と同様に，今回の課題7も先に分担を決めてから各自課題に取り組んだが，この課題はすぐ解けそうと話し合っていた課題で意外と苦戦したり，逆にこの課題は難しいと話し合っていた課題がすぐ終わってしまったりと，課題の分量や難易度の見積もりが上手くいかなかった．結局グループのメンバー全員が締め切りまでに終えれたから良いものの，分担ミスで締め切りに間に合わないなんてことは起きてはならない．課題ならまだしも，働くようになって仕事を分担する際に，仕事の量を上手く測ることができずに人月の計算を誤ってしまったら，最悪納期に間に合わないなんてことも考えられる．今回の課題で課題量の見積もりを誤ってしまったため，今後，さらには働くようになってからはそのようなミスを起こさないように気をつけたい．具体的には課題や仕事の量をある指標を用いて定量化したりすると良いと考えられる．</p>
 
+<h3>Slackの活用</h3><p>  さらに，今回の課題7ではグループの進捗管理や成果物共有のツールとしてSlackを使用した．GitHubより敷居が低く，直感的な操作が行える上に，話し合いができるというのが決めてであった．前回の課題6で使用したGitHubももちろん使用したが，GitHubはプログラムがほぼ完成してから他の人のソースコードに移植するときに使用し，Slackは課題に取り組む上の話し合いやちょっとしたメソッドなど短いコードの共有に使用するという使い分けをした．Slackを介して話し合うことで勝手に話し合いのログが取れたりするので，話し合いの内容を忘れてしまってもログを見て思い出すことができたりと，かなり快適なツールであった．Slackについて，他の進捗管理や成果物共有のツールと比較しつつ，ベストな使い方ができたと言える．今後のプレゼン作成の際にも使用していきたい．</p><h3>課題量の見積もり</h3><p>  今回はできなかったが，課題量の見積もりをもっと正確にするべきである．前回の課題6と同様に，今回の課題7も先に分担を決めてから各自課題に取り組んだが，この課題はすぐ解けそうと話し合っていた課題で意外と苦戦したり，逆にこの課題は難しいと話し合っていた課題がすぐ終わってしまったりと，課題の分量や難易度の見積もりが上手くいかなかった．結局グループのメンバー全員が締め切りまでに終えれたから良いものの，分担ミスで締め切りに間に合わないなんてことは起きてはならない．課題ならまだしも，働くようになって仕事を分担する際に，仕事の量を上手く測ることができずに人月の計算を誤ってしまったら，最悪納期に間に合わないなんてことも考えられる．今回の課題で課題量の見積もりを誤ってしまったため，今後，さらには働くようになってからはそのようなミスを起こさないように気をつけたい．具体的には課題や仕事の量をある指標を用いて定量化したりすると良いと考えられる．</p>
+<h3>GUI関連</h3>
+鈴木祥太君に作ってもらったchengeInitialStateやchangeGoalListメソッドではGUIへ直接うつせなかったので変更を行った。<br>
+もともとがVector型だったのをArrayList型に変更した。<br>
+また削除する場合にもともと削除元があるかチェックをしていなかったため、削除元がない場合はエラーが起こってしまうところをなおした。<br>
 <b>課題7-7</b></br>
 <p>
 本プログラムでは、登場する哲学者それぞれの食事条件を与えているが、これはあまりスマートなやり方といえない。</br>初めはフォークに名前をつけることは考えていなかったが、フォークに名前をつけないと哲学者が1つ隣のフォークも手を伸ばして取ってしまい食事状態になることが考えられたので、フォークに名前をつけ、ゴール条件を哲学者それぞれ与えることによって、制御に成功した。</br>
@@ -1309,20 +1941,32 @@ Aが置いたフォーク1とフォーク5を手に取りAを食事状態とす�
 </p>
 
 <h2>感想</h2>
+<h3>27115157</h3>
 今回の担当箇所はプログラムや構造をしっかりと理解しなければならない課題であったので完成に手間取った。</br>
 課題7-7では、実装までいけるか不安だったけどなんとか実装することができて良かった。</br>
+<h3>27115076</h3>
 <p>
-  課題の内容が自然言語処理というこれまでに何度か取り組んだことのあるものだったので，課題の要件を満たすのにはそれほど時間を必要としなかった．そのおかげか，他のメンバーとの話し合いを積極的に行うことができ，グループとしてのまとまりがあったように感じる．また，プログラムの設計について，main メソッドに大まかな流れを書いて，コード量が増える操作や別の流れとなる操作は別のメソッドとして用意するという，理想的なコーディングができたと思う．今後も続けていきたい．27115076
+  課題の内容が自然言語処理というこれまでに何度か取り組んだことのあるものだったので，課題の要件を満たすのにはそれほど時間を必要としなかった．そのおかげか，他のメンバーとの話し合いを積極的に行うことができ，グループとしてのまとまりがあったように感じる．また，プログラムの設計について，main メソッドに大まかな流れを書いて，コード量が増える操作や別の流れとなる操作は別のメソッドとして用意するという，理想的なコーディングができたと思う．今後も続けていきたい．
 </p>
+<h3>27115120</h3>
+図形を描画するための考え方を思いつくのに時間がかかった。<br>
+ブロック操作は自分の理想通りになったので満足である。<br>
+GUIは前回の課題で作ったやつをほとんどそのまま流用したのでプログラムの中身を理解するのに時間がかかったが応用させるのは比較的に楽だった。<br>
+課題7-5で作ってほしいと言われたメソッドは方針が早めにできたので実装するのは用意であった。<br>
+他の授業で中間試験があったため、あまり多くの時間を割くことができなかった。<br>
+発展課題をやったり、他のメンバーの手伝いをしたかった。<br>
+
 <hr>
 <h2>参考文献</h2>
 <!-- 参考文献を書く．助けてもらった人がいれば，それも書く-->
 
 <ul>
   <li>グループ3のメンバー</li>
-  <li>新谷虎松 著（19XX）『知能プログラミング入門』コロナ社</li>
+ <li>新谷虎松 著（2014）『Javaによる知能プログラミング入門』コロナ社</li>
+<li>https://www.javadrive.jp/java2d/shape/ 最終アクセス日2017年12月15日</li>
 
 </ul>
 
-</body>
+</body> <li>新谷虎松 著（2014）『Javaによる知能プログラミング入門』コロナ社</li>
+<li>https://www.javadrive.jp/java2d/shape/ 最終アクセス日2017年12月15日</li>
 </html>
