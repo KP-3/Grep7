@@ -56,7 +56,7 @@
 <h2>役割分担</h2>
 <!-- 役割分担を書く．-->
 <ul>
-<li>鈴木祥太 27115076</a>: 課題担当，</li>
+<li>鈴木祥太 27115076</a>: 課題7-5担当</li>
 <li>鈴木進也 27115077</a>: 課題担当</li>
 <li>丹羽貴敏 27115120</a>: 課題担当</li>
 <li>横尾由春 27115157</a>: 課題7-1 ,課題7-7担当</li>
@@ -223,6 +223,870 @@ private Vector initGoalList(){
 </br>
 なお10回実行してみたが全て同じ結果を得ている。</br>
 </p>
+
+
+<h2>発展課題7-5</h2>
+ユーザが自然言語（日本語や英語など）の命令文によってブロックを操作したり，初期状態／目標状態を変更したりできるようにせよ．<br>
+なお，命令文の動詞や語尾を１つの表現に決め打ちするのではなく，多様な表現を許容できることが望ましい．
+
+<h3>独自仕様の説明</h3>
+<!--
+ もし自分で独自に決めた仕様があれば，その説明を書く．
+-->
+<p>課題に加えて，以下の五点を独自仕様として組み込んだ．</p>
+
+<ol>
+  <li>ユーザの自然言語は英語の命令文とする</li>
+  <li>初期状態と目標状態はファイルから読み込む</li>
+  <li>プランニングの過程をコンソールで示す</li>
+  <li>ブロック操作を行う命令文はプランニングの過程を示しているときに読み込む</li>
+  <li>初期状態と目標状態の変更を行う命令文はプランニングを行う前に実行する</li>
+</ol>
+
+<p>
+  1.に関して，ユーザから入力される自然言語は英語とし，その英語の構造により各操作を実行する仕様とした．
+</p>
+<p>
+  2.に関して，初期状態と目標状態を初期化する際に，それぞれ InitialState.data, GoalList.data から読み込む仕様とした．
+</p>
+<p>
+  3.に関して，プログラム実行後にenterキーを押すとプランニングの過程が1ステップずつ実行される仕様とした．
+</p>
+<p>
+  4.に関して，プログラム実行後にブロック操作を行う命令文を入力してenterキーを押すと，その時点の状態に対してブロック操作が行われる仕様とした．
+</p>
+<p>
+  5.に関して，初期状態と目標状態の変更を行う命令文はプランニング実行前に changeInitialState(), changeGoalList() メソッドにより処理する仕様とした．
+</p>
+
+
+<h3>プログラムの構造</h3>
+<!--  どのような設計をしたか．-->
+<p>
+  実装したプログラムは三つのクラス Planner, Operator, Unifier で構成されている．
+</p>
+
+<h4>Plannerクラス</h4>
+<p>
+  Planner クラスは main メソッド，コンストラクタ，インスタンスメソッドとして start(), restart(), checkOrder(), nextStep(), changeInitialState(), changeGoalList(), planning(), planningAGoal(), rename(), initGoalList(), initInitialState(), initOperators() を持つ．<br>
+  main メソッドは，プランニングを実行する．<br>
+  コンストラクタ は，Planner クラスのインスタンスを生成する．<br>
+  start() メソッドは，初期状態と目標状態を初期化してプランニングを実行した結果を出力する．<br>
+  restart() メソッドは引数としてクラス Vector 型の変数 initialState, クラス Vector 型の変数 goalList を取り，引数として与えられた initialState を初期状態，goalList を目標状態とするプランニングを実行した結果を出力する．<br>
+  checkOrder() メソッドは引数としてクラス Vector 型の変数 nowState, クラス String 型の変数 op を取り，引数として与えられた nowState に対してオペレータ op が実行できるなら戻り値として true を返し，実行できないなら戻り値として false を返す．<br>
+  nextStep() メソッドは引数としてクラス Vector 型の変数 now, クラス String 型の変数 plan1 を取り，引数として与えられた初期状態 now に対してオペレータ plan1 を実行した後の状態を戻り値として返す．<br>
+  changeInitialState() メソッドは引数としてクラス Vector 型の変数 initialState, クラス String 型の変数 order を取り，引数として与えられた自然言語の命令文 order によって初期状態 initialState を変更したものを戻り値として返す．<br>
+  changeGoalList() メソッドは引数としてクラス Vector 型の変数 goalList, クラス String 型の変数 order を取り，引数として与えられた自然言語の命令文 order によって目標状態 goalList を変更したものを戻り値として返す．<br>
+  planning() メソッドは引数としてクラス Vector 型の変数 theGoalList, クラス Vector 型の変数 theCurrentState, クラス Hashtable 型の変数 theBinding を取り，引数として与えられた現在の状態 theCurrentState から目標状態 theGoalList に変換するようなプランの探索が成功したら戻り値として true を返し，失敗したら戻り値として false を返す．<br>
+  planningAGoal() メソッドは引数としてクラス String 型の変数 theGoal, クラス Vector 型の変数 theCurrentState, クラス Hashtable 型の変数 theBinding, int 型の変数 cPoint を取り，引数として与えられた現在の状態 theCurrentState から 目標状態の一つ theGoal に変換するようなプランの探索が成功したら戻り値として 0 か 適用したオペレータのインデックス を返し，失敗したら戻り値として -1 を返す．<br>
+  rename() メソッドは引数としてクラス Operator 型の変数 theOperator を取り，引数として与えられたオペレータ theOperator をリネーミングしたものを戻り値として返す．<br>
+  initGoalList() メソッドは，目標状態を初期化したものを戻り値として返す．<br>
+  initInitialState() メソッドは，初期状態を初期化したものを戻り値として返す．<br>
+  initOperators() メソッドは，オペレータを定義する．
+</p>
+
+<h4>Operatorクラス</h4>
+<p>
+  Operator クラスは コンストラクタ，インスタンスメソッドとして getAddList(), getDeleteList(), getIfList(), toString(), applyState(), getRenamedOperator(), getVars(), makeRenamedVarsTable(), renameVars(), instantiate(), instantiateString(), var() を持つ．<br>
+  コンストラクタ は引数としてクラス String 型の変数 theName, クラス Vector 型の変数 theIfList, クラス Vector 型の変数 theAddList, クラス Vector 型の変数 theDeleteList を取り，Operator クラスのインスタンスを生成する．<br>
+  getAddList() メソッドは，Operator クラスのメンバ変数である addList を戻り値として返す．<br>
+  getDeleteList() メソッドは，Operator クラスのメンバ変数である deleteList を戻り値として返す．<br>
+  getIfList() メソッドは，Operator クラスのメンバ変数である ifList を戻り値として返す．<br>
+  toString() メソッドは，Operator クラスのメンバ変数である name, addList, deleteList, ifList を文字列としたものを戻り値として返す．<br>
+  applyState() メソッドは引数としてクラス Vector 型の変数 theState を取り，引数として与えられた theState へメンバ変数である addList の要素を加え，deleteList の要素を削除したものを戻り値として返す．<br>
+  getRenamedOperator() メソッドは引数として int 型の変数 uniqueNum を取り，Operator クラスのインスタンスの変数をリネーミングしたものを戻り値として返す．<br>
+  getVars() メソッドは引数としてクラス String 型の変数 thePattern, クラス Vector 型の変数 vars を取り，引数として与えられた thePattern に含まれる変数を vars に格納したものを戻り値として返す．<br>
+  makeRenamedVarsTable() メソッドは引数としてクラス Vector 型の変数 vars, int 型の変数 uniqueNum を取り，引数として与えられた vars に含まれる各変数に対応した新たな唯一の名前を生成し，元の名前と新たな名前が対応するようにクラス Hashtable 型の変数 result に格納して，それを戻り値として返す．<br>
+  renameVars() メソッドは引数としてクラス String 型の変数 thePattern, クラス Hashtable 型の変数 renamedVarsTable を取り，引数として与えられた thePattern に含まれる変数名を新たな変数名に置き換えたものを戻り値として返す．<br>
+  instantiate() メソッドは引数としてクラス Hashtable 型の変数 theBinding を取り，引数として与えられた theBinding に従って，オペレータを具体化したものを戻り値として返す．<br>
+  instantiateString() メソッドは引数としてクラス String 型の変数 thePattern, クラス Hashtable 型の変数 theBinding を取り，引数として与えられた thePattern 中の変数を theBinding に格納されている値に置き換えたものを戻り値として返す．<br>
+  var() メソッドは引数としてクラス String 型の変数 str1 を取り，引数として与えられた str1 が変数なら戻り値として true を返し，変数でないなら戻り値として false を返す．
+</p>
+
+<h4>Unifierクラス</h4>
+<p>
+  Unifier クラスは コンストラクタ，インスタンスメソッドとして 3引数のunify(), 2引数のunify(), tokenMatching(), varMatching(), replaceBuffer(), replaceBindings(), var() メソッドを持つ．<br>
+  コンストラクタ は，Unifier クラスのインスタンスを生成する．<br>
+  3引数のunify() メソッドは引数としてクラス String 型の変数 string1, クラス String 型の変数 string2, クラス HashMap 型の変数 theBindings を取り，戻り値として 2引数のunify() が成功したら true を，失敗したら false を返す．<br>
+  2引数のunify() メソッドは引数としてクラス String 型の変数 string1, クラス String 型の変数 string2 を取り，戻り値としてパターンマッチングが成功したら true を，失敗したら false を返す．<br>
+  tokenMatching() メソッドは引数としてクラス String 型の変数 token1, クラス String 型の変数 token2 を取り，戻り値として tokn1 と token2 のパターンマッチングに成功したら true を，失敗したら false を返す．<br>
+  varMatching() メソッドは引数としてクラス String 型の変数 vartoken, クラス String 型の変数 token を取り，戻り値として vartoken と token のパターンマッチングに成功したら true を，失敗したら false を返す．<br>
+  replaceBuffer() メソッドは引数としてクラス String 型の変数 preString, クラス String 型の変数 postString を取り，bufferに存在するpreStringという名前の変数を全てpostStringという定数に置き換える．<br>
+  replaceBindings() メソッドは引数としてクラス String 型の変数 preString, クラス String 型の変数 postString を取り，preStringをハッシュ値として持つキーのハッシュ値をpostStringに変更する．<br>
+  var() メソッドは引数としてクラス String 型の変数 str1 を取り，str1が変数なら戻り値としてtrueを返す．
+</p>
+
+
+<h3>実装の説明</h3>
+<!--
+ どう実装したか，ソースコードを詳細に説明する．
+ 特に重要な箇所はレポートにペーストして説明する．
+-->
+<h4>Plannerクラス</h4>
+<p>
+  実装したプログラムに関して，先に挙げた Planner クラスが持つ main メソッド，コンストラクタ，start(), restart(), chackOrder(), nextStep(), changeInitialState(), changeGoalList(), planning(), planningAGoal(), rename(), initGoalList(), initInitialState(), initOperators() メソッドの説明を行う．
+</p>
+<p>
+  main メソッドについて特筆すべき点は，自クラスのインスタンスを生成して，自クラスの start() メソッドによりプランニングを実行していることである．
+</p>
+<p>
+  コンストラクタについて特筆すべき点は，競合解消戦略に使用する乱数であるクラス Random 型の rand をインスタンス化していることである．
+</p>
+<p>
+  下記は start() メソッドの実装である．ここで特筆すべき点は，命令文によってブロックを捜査するときのために実行前の初期状態・目標状態を保存していることである．保存するときにコンストラクタの引数に goalList, initialState を与えることにより，goalList, initialState が変更されてもそれを保存したものは変更されないようにしている．ユーザの自然言語の命令文に in initialState が含まれていたら初期状態を変更し，in goalList が含まれていたら目標状態を変更している．プランニングの実行後，その結果を出力する際に一行ずつ出力し，returnキーが押されたらもう一行出力し，命令文が与えられたら restart() メソッドによりその時点の状態に対するブロックの操作をするようにしている．
+</p>
+<pre class="brush: java">
+  public void start() {
+      initOperators();
+      Vector goalList = initGoalList();
+      Vector initialState = initInitialState();
+
+      // 実行前の初期状態・目標状態を保存 newで宣言しないとダメ
+      Vector tmpGoalList = new Vector(goalList);
+      Vector tmpInitialState = new Vector(initialState);
+
+      // 自然言語の命令文
+      String order = "add A on B in goalList"; // ブロックの操作，初期・目標状態の変更の両方
+//        String orderBlock = "Put A on B"; // ブロックの操作
+//        String orderState = "Put A ontable"; // 初期・目標状態の変更
+
+      // 命令文によりブロックを操作，初期・目標状態を変更
+      if (order.contains("in initialState")) { // 初期状態を変更
+          String orderInitialState = order.substring(0, order.indexOf("in initialState") - 1);
+//            System.out.println(orderInitialState);
+          initialState = changeInitialState(initialState, orderInitialState);
+      } else if (order.contains("in goalList")) { // 目標状態を変更
+          String orderGoalList = order.substring(0, order.indexOf("in goalList") - 1);
+//            System.out.println(orderGoalList);
+          goalList = changeGoalList(goalList, orderGoalList);
+      }
+
+      Hashtable theBinding = new Hashtable();
+      plan = new Vector();
+      planning(goalList, initialState, theBinding);
+
+      System.out.println("***** This is a plan! *****");
+      for (int i = 0; i < plan.size(); i++) {
+          Operator op = (Operator) plan.elementAt(i);
+          System.out.println((op.instantiate(theBinding)).name);
+      }
+
+      System.out.println(initialState);
+      System.out.println(goalList);
+      System.out.println(theBinding);
+
+      // 実行前の初期状態・目標状態を復元
+      goalList = tmpGoalList;
+      initialState = tmpInitialState;
+      System.out.println(initialState);
+      boolean fin = true;
+      String operateOrder;
+      for (int i = 0; i < plan.size(); i++) {
+          Operator op = (Operator) plan.elementAt(i);
+          System.out.print((op.instantiate(theBinding)).name);
+
+          // ここに状態の変更を行うメソッドを記述
+          initialState = nextStep(initialState, op.toString());
+          System.out.println(initialState);
+
+          // enterの読み込み
+          Scanner scan = new Scanner(System.in);
+          operateOrder = scan.nextLine();
+          if (!operateOrder.isEmpty()) {
+              System.out.println("new operator: " + operateOrder);
+              if (checkOrder(initialState, operateOrder)) {
+                  initialState = nextStep(initialState, operateOrder);
+                  fin = false;
+                  break;
+              } else {
+                  System.out.println("Cannot Operate");
+                  break;
+              }
+          }
+      }
+      if (!fin) { // 途中で命令が入力された
+          System.out.println("Re Planning");
+          plan.clear();
+          restart(initialState, goalList); // プランニングをもう一度実行
+      }
+  }
+</pre>
+<p>
+  下記は restart() メソッドの実装である．ここで特筆すべき点は，start() メソッドと同様に命令文によってブロックを捜査するときのために実行前の初期状態・目標状態を保存していることである．保存するときにコンストラクタの引数に goalList, initialState を与えることにより，goalList, initialState が変更されてもそれを保存したものは変更されないようにしている．プランニングの実行後も start() メソッドと同様の処理を行っているが，命令文が与えられたら restart() メソッドを再帰的に呼び出している．
+</p>
+<pre class="brush: java">
+  public void restart(Vector initialState, Vector goalList) {
+      // 実行前の初期状態・目標状態を保存 newで宣言しないとダメ
+      Vector tmpGoalList = new Vector(goalList);
+      Vector tmpInitialState = new Vector(initialState);
+
+      Hashtable theBinding = new Hashtable();
+      plan = new Vector();
+      planning(goalList, initialState, theBinding);
+
+      System.out.println("***** This is a plan! *****");
+      for (int i = 0; i < plan.size(); i++) {
+          Operator op = (Operator) plan.elementAt(i);
+          System.out.println((op.instantiate(theBinding)).name);
+      }
+
+      System.out.println(initialState);
+      System.out.println(goalList);
+      System.out.println(theBinding);
+
+      // 実行前の初期状態・目標状態を復元
+      goalList = tmpGoalList;
+      initialState = tmpInitialState;
+      System.out.println(initialState);
+      boolean fin = true;
+      String operateOrder;
+      for (int i = 0; i < plan.size(); i++) {
+          Operator op = (Operator) plan.elementAt(i);
+          System.out.print((op.instantiate(theBinding)).name);
+
+          // ここに状態の変更を行うメソッドを記述
+          initialState = nextStep(initialState, op.toString());
+          System.out.println(initialState);
+
+          // enterの読み込み
+          Scanner scan = new Scanner(System.in);
+          operateOrder = scan.nextLine();
+          if (!operateOrder.isEmpty()) {
+              System.out.println("new operator: " + operateOrder);
+              if (checkOrder(initialState, operateOrder)) {
+                  initialState = nextStep(initialState, operateOrder);
+                  fin = false;
+                  break;
+              } else {
+                  System.out.println("Cannot Operate");
+                  break;
+              }
+          }
+      }
+      if (!fin) { // 途中で命令が入力された
+          System.out.println("Re Planning");
+          plan.clear();
+          restart(initialState, goalList); // プランニングをもう一度実行
+      }
+  }
+</pre>
+<p>
+  下記は checkOrder() メソッドの実装である．ここで特筆すべき点は，オペレータのパターンを4つ用意して正規表現によるマッチングを使用していることである．それぞれマッチングしたオペレータに対する処理の中では boolean 型の flag により，引数として与えられた状態に対してオペレータが実行できるか否かを管理している．
+</p>
+<pre class="brush: java">
+  public boolean checkOrder(Vector nowState, String op) {
+      Pattern pat1 = Pattern.compile("Place (.+) on (.+)");
+      Matcher mat1 = pat1.matcher(op);
+      Pattern pat2 = Pattern.compile("remove (.+) from on top (.+)");
+      Matcher mat2 = pat2.matcher(op);
+      Pattern pat3 = Pattern.compile("pick up (.+) from the table");
+      Matcher mat3 = pat3.matcher(op);
+      Pattern pat4 = Pattern.compile("put (.+) down on the table");
+      Matcher mat4 = pat4.matcher(op);
+      if (mat1.find()) {
+          String x = mat1.group(1);
+          String y = mat1.group(2);
+          String check1 = "clear " + y;
+          String check2 = "holding " + x;
+          boolean flag1 = false;
+          boolean flag2 = false;
+          for (int j = 0; j < nowState.size(); j++) {
+              String a = (String) nowState.get(j);
+              if (a.equals(check1)) {
+                  flag1 = true;
+              }
+              if (a.equals(check2)) {
+                  flag2 = true;
+              }
+          }
+          return flag1 && flag2;
+      } else if (mat2.find()) {
+          String x = mat2.group(1);
+          String y = mat2.group(2);
+          String check1 = x + " on " + y;
+          String check2 = "clear " + x;
+          String check3 = "handEmpty";
+          boolean flag1 = false;
+          boolean flag2 = false;
+          boolean flag3 = false;
+          for (int j = 0; j < nowState.size(); j++) {
+              String a = (String) nowState.get(j);
+              if (a.equals(check1)) {
+                  flag1 = true;
+              }
+              if (a.equals(check2)) {
+                  flag2 = true;
+              }
+              if (a.equals(check3)) {
+                  flag3 = true;
+              }
+          }
+          return flag1 && flag2 && flag3;
+      } else if (mat3.find()) {
+          String x = mat3.group(1);
+          String check1 = "ontable " + x;
+          String check2 = "clear " + x;
+          String check3 = "handEmpty";
+          boolean flag1 = false;
+          boolean flag2 = false;
+          boolean flag3 = false;
+          for (int j = 0; j < nowState.size(); j++) {
+              String a = (String) nowState.get(j);
+              if (a.equals(check1)) {
+                  flag1 = true;
+              }
+              if (a.equals(check2)) {
+                  flag2 = true;
+              }
+              if (a.equals(check3)) {
+                  flag3 = true;
+              }
+          }
+          return flag1 && flag2 && flag3;
+      } else if (mat4.find()) {
+          String x = mat4.group(1);
+          String check1 = "holding " + x;
+          boolean flag1 = false;
+          for (int j = 0; j < nowState.size(); j++) {
+              String a = (String) nowState.get(j);
+              if (a.equals(check1)) {
+                  flag1 = true;
+              }
+          }
+          return flag1;
+      }
+
+      return false;
+  }
+</pre>
+<p>
+  下記は nextStep() メソッドの実装である．ここで特筆すべき点は，checkOrder() メソッドと同様に，オペレータのパターンを4つ用意して正規表現によるマッチングを使用していることである．それぞれマッチングしたオペレータに対する処理の中では boolean 型の flag により，引数として与えられた状態に対してオペレータが実行できるか否かを管理している．
+</p>
+<pre class="brush: java">
+  public Vector nextStep(Vector now, String plan1) {
+      Vector re = new Vector();
+      Pattern pat1 = Pattern.compile("Place (.+) on (.+)");
+      Matcher mat1 = pat1.matcher(plan1);
+      Pattern pat2 = Pattern.compile("remove (.+) from on top (.+)");
+      Matcher mat2 = pat2.matcher(plan1);
+      Pattern pat3 = Pattern.compile("pick up (.+) from the table");
+      Matcher mat3 = pat3.matcher(plan1);
+      Pattern pat4 = Pattern.compile("put (.+) down on the table");
+      Matcher mat4 = pat4.matcher(plan1);
+      if (mat1.find()) {
+          String x = mat1.group(1);
+          String y = mat1.group(2);
+          String check = "clear " + y;
+          String check1 = "holding " + x;
+          for (int j = 0; j < now.size(); j++) {
+              String a = (String) now.get(j);
+              boolean flag = true;
+              if (a.equals(check)) {
+                  flag = false;
+              }
+              if (a.equals(check1)) {
+                  flag = false;
+              }
+              if (flag) {
+                  re.addElement(a);
+              }
+          }
+          re.addElement(x + " on " + y);
+          re.addElement("clear " + x);
+          re.addElement("handEmpty");
+      } else if (mat2.find()) {
+          String x = mat2.group(1);
+          String y = mat2.group(2);
+          String check = x + " on " + y;
+          String check1 = "clear " + x;
+          String check2 = "handEmpty";
+          for (int j = 0; j < now.size(); j++) {
+              String a = (String) now.get(j);
+              boolean flag = true;
+              if (a.equals(check)) {
+                  flag = false;
+              }
+              if (a.equals(check1)) {
+                  flag = false;
+              }
+              if (a.equals(check2)) {
+                  flag = false;
+              }
+              if (flag) {
+                  re.addElement(a);
+              }
+          }
+          re.addElement("clear " + y);
+          re.addElement("holding " + x);
+      } else if (mat3.find()) {
+          String x = mat3.group(1);
+          String check = "ontable " + x;
+          String check1 = "clear " + x;
+          String check2 = "handEmpty";
+          for (int j = 0; j < now.size(); j++) {
+              String a = (String) now.get(j);
+              boolean flag = true;
+              if (a.equals(check)) {
+                  flag = false;
+              }
+              if (a.equals(check1)) {
+                  flag = false;
+              }
+              if (a.equals(check2)) {
+                  flag = false;
+              }
+              if (flag) {
+                  re.addElement(a);
+              }
+          }
+          re.addElement("holding " + x);
+      } else if (mat4.find()) {
+          String x = mat4.group(1);
+          String check = "holding " + x;
+          for (int j = 0; j < now.size(); j++) {
+              String a = (String) now.get(j);
+              boolean flag = true;
+              if (a.equals(check)) {
+                  flag = false;
+              }
+              if (flag) {
+                  re.addElement(a);
+              }
+          }
+          re.addElement("ontable " + x);
+          re.addElement("clear " + x);
+          re.addElement("handEmpty");
+      }
+
+      return re;
+  }
+</pre>
+<p>
+  下記は changeInitialState() メソッドの実装である．ここで特筆すべき点は，引数として与えられた命令文であるクラス String 型の order の構造に着目して，order がどの単語で始まるかについてif文による場合分けを行っていることである．場合分けを行った後は，引数として与えられた初期状態である initialState を変更している．
+</p>
+<pre class="brush: java">
+  public Vector changeInitialState(Vector initialState, String order) {
+      if (order.startsWith("add")) {
+          order = order.substring(4); // orderから"add"を削除
+//            System.out.println(order);
+          if (!initialState.contains(order)) {
+              initialState.addElement(order);
+          }
+      } else if (order.startsWith("append")) {
+          order = order.substring(7); // orderから"append"を削除
+//            System.out.println(order);
+          if (!initialState.contains(order)) {
+              initialState.addElement(order);
+          }
+      } else if (order.startsWith("delete")) {
+          order = order.substring(7); // orderから"delete"を削除
+//            System.out.println(order);
+          if (initialState.contains(order)) {
+              initialState.removeElement(order);
+          }
+      } else if (order.startsWith("remove")) {
+          order = order.substring(7); // orderから"remove"を削除
+//            System.out.println(order);
+          if (initialState.contains(order)) {
+              initialState.removeElement(order);
+          }
+      }
+//        System.out.println(initialState);
+      return initialState;
+  }
+</pre>
+<p>
+  下記は changeGoalList() メソッドの実装である．ここで特筆すべき点は，changeInitialState() メソッドと同様に，引数として与えられた命令文であるクラス String 型の order の構造に着目して，order がどの単語で始まるかについてif文による場合分けを行っていることである．場合分けを行った後は，引数として与えられた目標状態である goalList を変更している．
+</p>
+<pre class="brush: java">
+  public Vector changeGoalList(Vector goalList, String order) {
+      if (order.startsWith("add")) {
+          order = order.substring(4); // orderから"add"を削除
+//            System.out.println(order);
+          if (!goalList.contains(order)) {
+              goalList.addElement(order);
+          }
+      } else if (order.startsWith("append")) {
+          order = order.substring(7); // orderから"append"を削除
+//            System.out.println(order);
+          if (!goalList.contains(order)) {
+              goalList.addElement(order);
+          }
+      } else if (order.startsWith("delete")) {
+          order = order.substring(7); // orderから"delete"を削除
+//            System.out.println(order);
+          if (goalList.contains(order)) {
+              goalList.removeElement(order);
+          }
+      } else if (order.startsWith("remove")) {
+          order = order.substring(7); // orderから"remove"を削除
+//            System.out.println(order);
+          if (goalList.contains(order)) {
+              goalList.removeElement(order);
+          }
+      }
+//        System.out.println(goalList);
+      return goalList;
+  }
+</pre>
+<p>
+  planning() メソッドについて特筆すべき点は，目標を副目標に分解してプランニングを再帰的に行う後向き推論を行っていることである．引数として与えられた複数の目標集合であるクラス Vector 型の theGoalList に含まれる各プランニングを planningAGoal() メソッドを用いて行う．theGoalList に含まれる目標が一つだけであれば，その目標を planningAGoal() メソッドを用いてプランニングする．theGoalList に含まれる目標が複数あれば，一つ目の目標を planningAGoal() メソッドを用いてプランニングし，成功すればそのプランニングで生じた変数束縛情報 theBinding を使ってその他の目標のプランニングを実行する．また，プランニングが失敗したときに変数束縛情報を復元するために，プランニングの実行前に別の変数に保存している．
+</p>
+<p>
+  planningAGoal() メソッドについて特筆すべき点は，引数として与えられた目標であるクラス String 型の theGoal が，現在の状態であるクラス Vector 型の theCurrentState で既に満たされているかどうかを調べていることである．満たしていたら，戻り値として 0 を返して終了する．満たされていない場合は，オペレータの実行を試みる．オペレータの競合解消をランダムにオペレータを選んでオペレータを並べ替える操作により行う．オペレータの順番をランダムに並べ替えることによって，同じオペレータが繰り返し選択されることを防いでいる．ランダムに生成した整数をオペレータの数で割ったあまりを選択すべきオペレータを指定する番号とすることにより，生成した整数がオペレータの数を上回ることを避けている．プランニングにおける各推論ステップでは，一つずつのオペレータのADDリストと目標集合を比較する．オペレータのADDリストにオペレータと一致するものがあれば，そのオペレータのIF部を新たに副目標としてプランニングを行う．そしてこのオペレータをプランとして加える．副目標に関してプランが確定したら，そのプランを実行し，どの事実が消去されるかを獲得する．
+</p>
+<p>
+  rename() メソッドについて特筆すべき点は，引数として与えられたオペレータであるクラス Operator 型の theOperator に含まれる変数をリネーミングし，リネーミングしたオペレータを戻り値として返していることである．変数をリネーミングするために，ユニークな整数 uniqueNum を生成し，Operator クラスの getRenamedOperator() メソッドに渡している．
+</p>
+<p>
+  下記は initGoalList() メソッドの実装である．ここで特筆すべき点は，読み込むファイル名をクラス String 型の fileName として指定し，fileName として指定したファイルから1行ずつ読み込んでいることである．読み込みに失敗した時の例外処理のためのtry-catch構文を使用している．
+</p>
+<pre class="brush: java">
+  private Vector initGoalList() {
+      Vector goalList = new Vector();
+//        goalList.addElement("B on C");
+//        goalList.addElement("A on B");
+
+      String fileName = "GoalList.data";
+      try { // ファイル読み込みに失敗した時の例外処理のためのtry-catch構文
+
+          // 文字コードを指定してBufferedReaderオブジェクトを作る
+          BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), "UTF-8"));
+
+          // 変数lineに1行ずつ読み込むfor文
+          for (String line = in.readLine(); line != null; line = in.readLine()) {
+              goalList.addElement(line);
+          }
+
+      } catch (IOException e) {
+          e.printStackTrace(); // 例外が発生した所までのスタックトレースを表示
+      }
+      return goalList;
+  }
+</pre>
+<p>
+  下記は initInitialState() メソッドの実装である．ここで特筆すべき点は，initGoalList() メソッドと同様に，読み込むファイル名をクラス String 型の fileName として指定し，fileName として指定したファイルから1行ずつ読み込んでいることである．読み込みに失敗した時の例外処理のためのtry-catch構文を使用している．
+</p>
+<pre class="brush: java">
+  private Vector initInitialState() {
+      Vector initialState = new Vector();
+//        initialState.addElement("clear A");
+//        initialState.addElement("clear B");
+//        initialState.addElement("clear C");
+
+//        initialState.addElement("ontable A");
+//        initialState.addElement("ontable B");
+//        initialState.addElement("ontable C");
+//        initialState.addElement("handEmpty");
+
+      String fileName = "InitialState.data";
+      try { // ファイル読み込みに失敗した時の例外処理のためのtry-catch構文
+
+          // 文字コードを指定してBufferedReaderオブジェクトを作る
+          BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(fileName), "UTF-8"));
+
+          // 変数lineに1行ずつ読み込むfor文
+          for (String line = in.readLine(); line != null; line = in.readLine()) {
+              initialState.addElement(line);
+          }
+
+      } catch (IOException e) {
+          e.printStackTrace(); // 例外が発生した所までのスタックトレースを表示
+      }
+      return initialState;
+  }
+</pre>
+<p>
+  initOperators() メソッドについて特筆すべき点は，Operater クラスのインスタンスを生成し，Vector 型の変数 operators に保存していることである．オペレータの名前を String クラスのインスタンス，IFリスト，ADDリスト，DELETEリストを各々 Vector クラスのインスタンスとして生成している．
+</p>
+
+<h4>Operatorクラス</h4>
+<p>
+  続いて，先に挙げた Operator クラスが持つ コンストラクタ，getAddList(), getDeleteList(), getIfList(), toString(), applyState(), getRenamedOperator(), getVars(), makeRenamedVarsTable(), renameVars(), instantiate(), instantiateString(), var() メソッドの説明を行う．
+</p>
+<p>
+  コンストラクタ について特筆すべき点は，オペレータの名前であるクラス String 型の name, IFリストであるクラス Vector 型の ifList, ADDリストであるクラス Vector 型の addList, DELETEリストであるクラス Vector 型の deleteList をインスタンス化していることである．
+</p>
+<p>
+  getAddList(), getDeleteList(), getIfList() メソッドについて特筆すべき点は，これらのメソッドにより Operator クラスのメンバ変数を得ることができることである．
+</p>
+<p>
+  toString() メソッドについて特筆すべき点は，Operator クラスのメンバ変数を一度に得ることができることである．
+</p>
+<p>
+  applyState() メソッドについて特筆すべき点は，引数として与えられた状態であるクラス Vector 型の theState に対して addElement() メソッドを使用して，Operator クラスのメンバ変数である addList の要素をforループにより1つずつ加えて，removeElement() メソッドsを使用して，Operator クラスのメンバ変数である deleteList の要素をforループにより1つずつ削除していることである．
+</p>
+<p>
+  getRenamedOperator() メソッドについて特筆すべき点は，Operator クラスのインスタンスのIFリスト，ADDリスト， DELETEリストに含まれる変数を getVars() メソッドを用いてクラス Vector 型の vars に格納してから，makeRenamedVarsTable() メソッドを用いて vars に含まれる各変数に対応した新たな唯一の名前を生成し，元の名前と新たな名前が対応するようにクラス Hashtable 型の変数 renamedVarsTable に格納したものを用いて，新たなIFリスト，ADDリスト，DELETEリスト，名前を作り，それを新たなオペレータとしていることである．
+</p>
+<p>
+  getVars() メソッドについて特筆すべき点は，引数として与えられたパターンであるクラス String 型の thePattern をトークンに分解し，それぞれのトークンが変数であるかどうかを vars() メソッドを使用して判定していることである．
+</p>
+<p>
+  makeRenamedVarsTable() メソッドについて特筆すべき点は，引数として与えられた変数の集合であるクラス Vector 型の vars に含まれる変数各々に対して，int 型の uniqueNum によってリネーミングした新たな変数を生成し，クラス Hashtable 型の result に格納していることである．
+</p>
+<p>
+  renameVars() メソッドについて特筆すべき点は，引数として与えられたパターンであるクラス String 型の thePattern をトークンに分割し，トークンそれぞれについてそのトークンが変数であれば，その変数の名前をリネーミングした新たな変数名をクラス Hashtable 型の renamedVarsTable から取得していることである．トークンが変数でなければそのままにしている．
+</p>
+<p>
+  instantiate() メソッドについて特筆すべき点は，Operator クラスのインスタンスの名前，IFリスト，ADDリスト，DELETEリストに現れる各変数を instantiateString() メソッドを用いて，引数として与えられたクラス Hashtable 型の theBinding を基に，各変数に対応した値に置き換えていることである．
+</p>
+<p>
+  instantiateString() メソッドについて特筆すべき点は，引数として与えられたパターンであるクラス String 型の thePattern をトークンに分割して，各トークンが変数であればその変数の値を引数として与えられたクラス Hashtable 型の theBinding から取得していることである．変数の値が取得できない場合は，そのまま値を代入する．トークンが変数でなければ，そのまま返している．
+</p>
+<p>
+  var() メソッドについて特筆すべき点は，引数として与えられたクラス String 型の str1 の先頭が?なら変数としていることである．String クラスの startsWith() メソッドにより判定を行っている．
+</p>
+
+<h4>Unifierクラス</h4>
+<p>
+  続いて，先に挙げた Unifier クラスが持つ コンストラクタ，3引数のunify(), 2引数のunify(), tokenMatching(), varMatching(), replaceBuffer(), replaceBindings(), var() メソッドの説明を行う．
+</p>
+<p>
+  コンストラクタについて特筆すべき点は，パターンマッチングの課題で使用した際とは異なり，クラス HashMap 型の vars をインスタンス化してしていないことである．
+</p>
+<p>
+  3引数のunify() メソッドについて特筆すべき点は，引数として得たクラス HashMap 型の theBindings を初期の変数束縛情報としてもつことができるようになっていることである．変数束縛情報について初期値をもっているために，unify() メソッドの実行が進行し失敗したら，変数束縛情報を初期値に戻す必要があるため，変数束縛情報をクラス HashMap 型の orgBindings として保存してから 2引数のunify() メソッドを実行する．もし失敗したら，変数束縛情報を元の初期値に戻す操作を実行する．
+</p>
+<p>
+  2引数のunify() メソッドについて特筆すべき点は，引数として得たクラス String 型の string1 と，クラス String 型の string2が同じなら true を返し，異なれば各々トークンに分けてパターンマッチングを行っていることである．初期値として変数束縛情報が与えられていたら，その変数束縛情報に基づいてトークンを具体化している．
+</p>
+<p>
+  tokenMatching() メソッドについて特筆すべき点は，引数として得たクラス String 型の token1 と，クラス String 型の token2 が等しければ true を返し，varMatching() メソッドの引数として与えた結果が成功したら true を返し，失敗したら false を返していることである．
+</p>
+<p>
+  varMatching() メソッドについて特筆すべき点は，Unifier クラスのインスタンスの変数束縛情報が保管されている vars に引数として与えられたクラス String 型の vartoken がキーとして含まれている場合といない場合の場合分けがされていることである．vartoken がキーとして含まれていない場合は replaceBindings() メソッドを使用して，さらに vartoken がキー値として含まれている場合は replaceBindings() メソッドを使用している．
+</p>
+<p>
+  replaceBuffer() メソッドについて特筆すべき点は，forループにより1つ目の引数として与えられたクラス String 型の変数 preString と同じ名前の変数が配列 buffer1, buffer2 中に存在するかを走査し，もし存在すればその変数を2つ目の引数として与えられたクラス String 型の変数 postString に置き換えていることである．
+</p>
+<p>
+  replaceBindings() メソッドについて特筆すべき点は，クラス Iterator 型の変数 keys をforループのイテレータとして使用していることである．Iteratorクラスの使用により，処理速度を向上させている．forループ内では1つ目の引数として与えられたクラス String 型の変数 preString をハッシュ値に持つキーがあれば，そのキーのハッシュ値を2つ目の引数として与えられたクラス String 型の変数 postString に変更するという操作を行なっている
+</p>
+<p>
+  var() メソッドについて特筆すべき点は，Stringクラスの startsWith() メソッドを使用して，引数として与えられたクラス String 型の変数 str1 がパターンマッチングにおける変数かどうか確かめ，変数ならtrueを，そうでないならfalseを返している点である．
+</p>
+
+
+<h3>実行例</h3>
+<!-- 実行例を示す．PNGやGIF等の絵を張っても良い．-->
+<h4>途中で自然言語によるブロックの操作を行わない場合</h4>
+<p>
+  InitialState.dataを初期状態，GoalList.dataを目標状態としてプランニングを実行し，コンソール上でenterを押して1ステップずつオペレータを実行した結果のコンソールの出力を以下に示す．
+</p>
+<pre>
+  *** GOALS ***[B on C, A on B]
+  **B on C
+  newOperator name: Place B on C
+  *** GOALS ***[clear C, holding B]
+  **clear C
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[holding B]
+  **holding B
+  newOperator name: pick up B from the table
+  *** GOALS ***[ontable B, clear B, handEmpty]
+  **ontable B
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[clear B, handEmpty]
+  **clear B
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: pick up B from the table
+  State Changed.
+  newOperator name inside: Place B on C
+  theCurrentState: [clear A, ontable A, ontable C, B on C, clear B, handEmpty]
+  *** GOALS ***[A on B]
+  **A on B
+  newOperator name: Place A on B
+  *** GOALS ***[clear B, holding A]
+  **clear B
+  theCurrentState: [clear A, ontable A, ontable C, B on C, clear B, handEmpty]
+  *** GOALS ***[holding A]
+  **holding A
+  newOperator name: pick up A from the table
+  *** GOALS ***[ontable A, clear A, handEmpty]
+  **ontable A
+  theCurrentState: [clear A, ontable A, ontable C, B on C, clear B, handEmpty]
+  *** GOALS ***[clear A, handEmpty]
+  **clear A
+  theCurrentState: [clear A, ontable A, ontable C, B on C, clear B, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: pick up A from the table
+  State Changed.
+  newOperator name inside: Place A on B
+  ***** This is a plan! *****
+  pick up B from the table
+  Place B on C
+  pick up A from the table
+  Place A on B
+  [ontable C, B on C, A on B, clear A, handEmpty]
+  [A on B]
+  {?x5=A, ?x3=A, ?x2=B, ?y3=B, ?x0=B, ?y0=C}
+  [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  pick up B from the table[clear A, clear C, ontable A, ontable C, holding B]
+
+
+  Place B on C[clear A, ontable A, ontable C, B on C, clear B, handEmpty]
+
+  pick up A from the table[ontable C, B on C, clear B, holding A]
+
+  Place A on B[ontable C, B on C, A on B, clear A, handEmpty]
+</pre>
+<p>
+  正しい出力が得られた．
+</p>
+
+<h4>途中で自然言語によるブロックの操作を行う場合</h4>
+<p>
+  InitialState.dataを初期状態，GoalList.dataを目標状態としてプランニングを実行し，途中でコンソールに自然言語によるブロックの操作を行う命令を入力した結果のコンソールの出力を以下に示す．
+</p>
+<pre>
+  *** GOALS ***[B on C, A on B]
+  **B on C
+  newOperator name: Place B on C
+  *** GOALS ***[clear C, holding B]
+  **clear C
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[holding B]
+  **holding B
+  newOperator name: remove B from on top ?y4
+  *** GOALS ***[B on ?y4, clear B, handEmpty]
+  **B on ?y4
+  newOperator name: Place B on ?y8
+  *** GOALS ***[clear ?y8, holding B]
+  **clear ?y8
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[holding B]
+  **holding B
+  newOperator name: remove B from on top ?y9
+  *** GOALS ***[B on ?y9, clear B, handEmpty]
+  **B on ?y9
+  newOperator name: Place B on ?y11
+  *** GOALS ***[clear ?y11, holding B]
+  **clear ?y11
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[holding B]
+  **holding B
+  newOperator name: pick up B from the table
+  *** GOALS ***[ontable B, clear B, handEmpty]
+  **ontable B
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[clear B, handEmpty]
+  **clear B
+  theCurrentState: [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: pick up B from the table
+  State Changed.
+  newOperator name inside: Place B on ?y11
+  theCurrentState: [clear A, clear C, ontable A, ontable C, B on ?y11, clear B, handEmpty]
+  *** GOALS ***[clear B, handEmpty]
+  **clear B
+  theCurrentState: [clear A, clear C, ontable A, ontable C, B on ?y11, clear B, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: remove B from on top ?y9
+  State Changed.
+  newOperator name inside: Place B on ?y8
+  theCurrentState: [clear A, clear C, ontable A, ontable C, B on ?y11, clear ?y9, B on ?y8, clear B, handEmpty]
+  *** GOALS ***[clear B, handEmpty]
+  **clear B
+  theCurrentState: [clear A, clear C, ontable A, ontable C, B on ?y11, clear ?y9, B on ?y8, clear B, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: remove B from on top ?y4
+  State Changed.
+  newOperator name inside: Place B on C
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on ?y8, clear ?y4, B on C, clear B, handEmpty]
+  *** GOALS ***[A on B]
+  **A on B
+  newOperator name: Place A on B
+  *** GOALS ***[clear B, holding A]
+  **clear B
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on ?y8, clear ?y4, B on C, clear B, handEmpty]
+  *** GOALS ***[holding A]
+  **holding A
+  newOperator name: pick up A from the table
+  *** GOALS ***[ontable A, clear A, handEmpty]
+  **ontable A
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on ?y8, clear ?y4, B on C, clear B, handEmpty]
+  *** GOALS ***[clear A, handEmpty]
+  **clear A
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on ?y8, clear ?y4, B on C, clear B, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: pick up A from the table
+  State Changed.
+  newOperator name inside: Place A on B
+  ***** This is a plan! *****
+  pick up B from the table
+  Place B on A
+  remove B from on top A
+  Place B on A
+  remove B from on top A
+  Place B on C
+  pick up A from the table
+  Place A on B
+  [ontable C, B on ?y11, clear ?y9, B on ?y8, clear ?y4, B on C, A on B, clear A, handEmpty]
+  [A on B]
+  {?y9=A, ?y8=A, ?x16=A, ?x15=A, ?y4=A, ?y3=C, ?x12=B, ?x11=B, ?x9=B, ?y15=B, ?x8=B, ?y11=A, ?x4=B, ?x3=B}
+  [clear A, clear B, clear C, ontable A, ontable B, ontable C, handEmpty]
+  pick up B from the table[clear A, clear C, ontable A, ontable C, holding B]
+
+
+  Place B on A[clear A, clear C, ontable A, ontable C, B on ?y11, clear B, handEmpty]
+
+  remove B from on top A[clear A, clear C, ontable A, ontable C, B on ?y11, clear ?y9, holding B]
+  Place B on C       <- 自然言語によるブロックの操作を行う命令
+  new operator: Place B on C
+  Re Planning        <- 再度プランニングを実行
+  *** GOALS ***[B on C, A on B]
+  **B on C
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on C, clear B, handEmpty]
+  *** GOALS ***[A on B]
+  **A on B
+  newOperator name: Place A on B
+  *** GOALS ***[clear B, holding A]
+  **clear B
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on C, clear B, handEmpty]
+  *** GOALS ***[holding A]
+  **holding A
+  newOperator name: pick up A from the table
+  *** GOALS ***[ontable A, clear A, handEmpty]
+  **ontable A
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on C, clear B, handEmpty]
+  *** GOALS ***[clear A, handEmpty]
+  **clear A
+  theCurrentState: [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on C, clear B, handEmpty]
+  *** GOALS ***[handEmpty]
+  **handEmpty
+  State Changed.
+  newOperator name inside: pick up A from the table
+  State Changed.
+  newOperator name inside: Place A on B
+  ***** This is a plan! *****
+  pick up A from the table
+  Place A on B
+  [ontable C, B on ?y11, clear ?y9, B on C, A on B, clear A, handEmpty]
+  [A on B]
+  {?y11=C, ?y19=B, ?x20=A, ?y9=B, ?x19=A}
+  [clear A, ontable A, ontable C, B on ?y11, clear ?y9, B on C, clear B, handEmpty]
+  pick up A from the table[ontable C, B on ?y11, clear ?y9, B on C, clear B, holding A]
+
+  Place A on B[ontable C, B on ?y11, clear ?y9, B on C, A on B, clear A, handEmpty]
+</pre>
+<p>
+  正しい出力が得られた．
+</p>
+
 
 <!-- 画像ファイルを貼る場合は <img> タグを使う -->
 <h2>発展課題7-7</h2>
@@ -424,6 +1288,13 @@ Aが置いたフォーク1とフォーク5を手に取りAを食事状態とす�
 ゴールリストから分解対象を取り出すのは上から順番であるため、"A on B"を取り出し、AをBの上にのせる手順を確定させてしまうためにこのエラーが起こる。</br>
 <b>解決策</b></br>
 目標状態を格納するときに位置が下からとなるようにソートし、GoalListに格納する。</br></br></br>
+
+<b>課題7-5</b><br>
+<h3>自然言語の命令文を実行するタイミング</h3>
+<p>
+今回，ユーザが自然言語の命令文によってブロックを操作をしたり，初期状態／目標状態を変更したりできるようにするという課題であったが，ブロックの操作はプランニングを1ステップずつ進めていくときに実行し，初期状態／目標状態の変更はプランニングの実行前に行うのが自然と感じたため，そのように実装した．課題の出題としてはどのタイミングで行うかについての指定がなかったため，きちんと自分でどのタイミングで行うべきかについて考えて課題に取り組んだ．この手法は素晴らしいと言える．実装法としては，初期状態と目標状態の初期化が終わったら，プログラム中の自然言語の命令文により初期状態／目標状態の変更をして，プランニングを実行するようになっている．プランニングを実行すると初期状態が実行前から変更されてしまうため，プランニングの実行前に別のオブジェクトに保存してからプランニングを実行し，プランニング実行後に初期状態を復元して，プランニングにより得られた実行するオペレータの集合からオペレータを1つずつ読み出すことで，コンソール上で1ステップずつプランニングを実行している．コンソール上で1ステップずつプランニングを実行しつつ，標準入力により自然言語のブロック操作を実行する命令文を得て，その命令文が実行可能であればその時点の状態に対し入力されたブロック操作の命令を実行している．</p><h3>GUIへの移植を考えた設計</h3><p>  また，前回の課題6でグループ課題である以上はコードを共有することになるため，プログラムの設計を話し合った上で課題に取り組んだらスムーズに課題に取り組めたことを踏まえて，今回もプログラムの設計を話し合いながら課題を進めていった．特に課題7-3のGUIの実装を担当している27115120丹羽君と，直接話したりSlackを使用したりして，どの操作をメソッドとして用意するかやメソッドの引数について話し合いながら課題に取り組んだ．そのおかげか，自分の担当している箇所を課題7-3のGUIのソースコードに移植することがかなり楽にできたようであった．前回の課題で学んだ課題に対する良い取り組み方を忘れずに，今回の課題においても行えたことは非常に良い．失敗から学ぶのも大事だが，成功を忘れないのも大事である．</p>
+<h3>Slackの活用</h3><p>  さらに，今回の課題7ではグループの進捗管理や成果物共有のツールとしてSlackを使用した．GitHubより敷居が低く，直感的な操作が行える上に，話し合いができるというのが決めてであった．前回の課題6で使用したGitHubももちろん使用したが，GitHubはプログラムがほぼ完成してから他の人のソースコードに移植するときに使用し，Slackは課題に取り組む上の話し合いやちょっとしたメソッドなど短いコードの共有に使用するという使い分けをした．Slackを介して話し合うことで勝手に話し合いのログが取れたりするので，話し合いの内容を忘れてしまってもログを見て思い出すことができたりと，かなり快適なツールであった．Slackについて，他の進捗管理や成果物共有のツールと比較しつつ，ベストな使い方ができたと言える．今後のプレゼン作成の際にも使用していきたい．</p><h3>課題量の見積もり</h3><p>  今回はできなかったが，課題量の見積もりをもっと正確にするべきである．前回の課題6と同様に，今回の課題7も先に分担を決めてから各自課題に取り組んだが，この課題はすぐ解けそうと話し合っていた課題で意外と苦戦したり，逆にこの課題は難しいと話し合っていた課題がすぐ終わってしまったりと，課題の分量や難易度の見積もりが上手くいかなかった．結局グループのメンバー全員が締め切りまでに終えれたから良いものの，分担ミスで締め切りに間に合わないなんてことは起きてはならない．課題ならまだしも，働くようになって仕事を分担する際に，仕事の量を上手く測ることができずに人月の計算を誤ってしまったら，最悪納期に間に合わないなんてことも考えられる．今回の課題で課題量の見積もりを誤ってしまったため，今後，さらには働くようになってからはそのようなミスを起こさないように気をつけたい．具体的には課題や仕事の量をある指標を用いて定量化したりすると良いと考えられる．</p>
+
 <b>課題7-7</b></br>
 <p>
 本プログラムでは、登場する哲学者それぞれの食事条件を与えているが、これはあまりスマートなやり方といえない。</br>初めはフォークに名前をつけることは考えていなかったが、フォークに名前をつけないと哲学者が1つ隣のフォークも手を伸ばして取ってしまい食事状態になることが考えられたので、フォークに名前をつけ、ゴール条件を哲学者それぞれ与えることによって、制御に成功した。</br>
@@ -440,6 +1311,9 @@ Aが置いたフォーク1とフォーク5を手に取りAを食事状態とす�
 <h2>感想</h2>
 今回の担当箇所はプログラムや構造をしっかりと理解しなければならない課題であったので完成に手間取った。</br>
 課題7-7では、実装までいけるか不安だったけどなんとか実装することができて良かった。</br>
+<p>
+  課題の内容が自然言語処理というこれまでに何度か取り組んだことのあるものだったので，課題の要件を満たすのにはそれほど時間を必要としなかった．そのおかげか，他のメンバーとの話し合いを積極的に行うことができ，グループとしてのまとまりがあったように感じる．また，プログラムの設計について，main メソッドに大まかな流れを書いて，コード量が増える操作や別の流れとなる操作は別のメソッドとして用意するという，理想的なコーディングができたと思う．今後も続けていきたい．27115076
+</p>
 <hr>
 <h2>参考文献</h2>
 <!-- 参考文献を書く．助けてもらった人がいれば，それも書く-->
