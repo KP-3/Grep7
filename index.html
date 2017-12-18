@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+
+  <!--
+   デフォルトのスタイル
+   より見やすく変更しても良い
+  -->
+  <link rel="stylesheet" href="default.css"/>
+
+  <!--
+    SyntaxHighlighter 3.0.83 (http://alexgorbatchev.com/SyntaxHighlighter/)
+    Java のコードを読みやすくする
+  -->
+  <link rel="stylesheet" href="shCore.css"/>
+  <link rel="stylesheet" href="shThemeDjango.css"/>
+  <script src="shCore.js"></script>
+  <script src="shBrushJava.js"></script>
+  <script>SyntaxHighlighter.all();</script>
+
+  <!--
+    目次を動的に生成する
+  -->
+  <script src="outliner.js"></script>
+  <script>
+    window.addEventListener('load', function() {
+      // 第一引数: アウトライン対象の要素のセレクタ，第二引数: アウトラインを格納する要素のセレクタ．
+      new TOutliner('h2', '#outline');
+    });
+  </script>
+
+  <title>知能プログラミング演習IIグループ作成 レポート</title>
+</head>
+
+<!-- このグループ作成資料は，同じファイルを全員のGrepX（Grep5やGrep6等）ディレクトリにコピーして置くこと -->
+
+<body>
+<header>
+  <!-- グループ番号を書く．-->
+  <h1>グループ3</h1>
+
+  <!-- 目次生成用 -->
+  <nav id="outline"></nav>
+</header>
+
+<!-- グループ全員の名前, 学籍番号を書き，個人作成書類へのリンクを張る -->
+<h2>メンバー</h2>
+<ul>
+<li><a href="../../../../ckl15076/workspace/kprep/rep7/index.html">鈴木祥太 27115076</a></li>
+<li><a href="../../../../ckl15077/workspace/kprep/rep7/index.html">鈴木進也 27115077</a></li>
+<li><a href="../../../../ckl15120/workspace/kprep/rep7/index.html">丹羽貴敏 27115120</a></li>
+<li><a href="../../../../ckl15157/workspace/kprep/rep7/index.html">横尾由春 27115157</a></li>
+</ul>
+
+<h2>役割分担</h2>
+<!-- 役割分担を書く．-->
+<ul>
+<li>鈴木祥太 27115076</a>: 課題担当，</li>
+<li>鈴木進也 27115077</a>: 課題担当</li>
+<li>丹羽貴敏 27115120</a>: 課題担当</li>
+<li>横尾由春 27115157</a>: 課題7-1 ,課題7-7担当</li>
+</ul>
+
+<h2>ソースファイル</h2>
+<ul>
+	<li><a href="./Dining.java">Dining.java</a>(課題7-7)</li>
+
+    <!-- 実装・変更したソースファイルへのリンク．修正する． -->
+    <!-- ※ リンクは絶対パスに変更せず，上記のような相対パスのままで！ -->
+</ul>
+
+
+<h2>課題7-1</h2>
+[必須課題7-1] 目標状態を変えてみたときに，動作が正しくない場合があったかどうか，実行例を示して考察せよ．</br>
+また，もしあったならその箇所を修正し，どのように修正したか記せ．</br>
+<h3>独自仕様の説明</h3>
+<!--
+ もし自分で独自に決めた仕様があれば，その説明を書く．
+-->
+
+<b>問題点1</b></br>
+配布されたプログラムをそのまま実行すると、"Place A on A"など、Aの上にAを置く動作が確認できる。</br>
+この動作は、Aという物体が2つ以上存在しない限りあり得ない動作なのでこのエラーを修正する。</br>
+<b>問題点2</b></br>
+目標状態を"B on C"、"A on B"ではなく"A on B"、"B on C"のように物体の位置が上のものから入力してしまうと正しく解を得ることができない。</br>
+</br>
+以上2つの問題点を解決する。</br>
+
+方針等は考察欄で記述する。</br>
+
+
+<h3>プログラムの構造</h3>
+<!--  どのような設計をしたか．-->
+<b>問題点1</b></br>
+オペレーター選択でランダムな順番に入れ替える際に、オペレーター3(ブロックの上から手への移動)が選択されず、選択されたオペレーターを最後尾ではなく3番目に代入するようにした。</br>
+これにより、オペレーター3は最後尾に固定され、選ばれることはなくなる。</br>
+</br>
+
+<b>問題点2</b></br>
+"○ on ○"の目標状態を抽出し、その○の集合から一度しか登場しない物体名をさらに抽出する。("A on B","B on C","C on D"ならA,D)</br>
+一度しか出てこない物体のうち、後ろの○の物体を含む文を始めにゴールリストに格納する(C on D)。その後、今格納した始めの○の名前を持つ物体(C)を後ろに含む文を格納する(B on C)。その後はしりとりの要領で、始めが(A)を含む文になるまで繰り返す。</br>
+
+
+
+<h3>実装の説明</h3>
+<!--
+ どう実装したか，ソースコードを詳細に説明する．
+ 特に重要な箇所はレポートにペーストして説明する．
+-->
+<b>問題点1</b></br>
+ランダムな値を取得する際、0,1,2のいずれかが選択されるようにした。</br>
+またリスト入れ替えの際に最後尾ではなく3番目に代入するようにした。</br>
+<pre class="brush: java">
+private int planningAGoal(String theGoal,Vector theCurrentState,
+			Hashtable theBinding,int cPoint){
+...
+int randInt = Math.abs(rand.nextInt()) % (operators.size()-1);
+Operator op = (Operator)operators.elementAt(randInt);
+operators.removeElementAt(randInt);
+operators.add(2,op);
+...
+}
+</pre>
+</br>
+<b>問題点2</b></br>
+今回この問題を解決するにあたって変更を加えたメソッドはinitGoalListである。</br>
+必要なVectorを定義する。</br>
+onGoalListは目標状態から"○ on ○"の集合が、</br>
+otherListは"○ on ○"の状態が、</br>
+finalGoalListはソート後のGoalList集合が格納される。</br>
+<pre class="brush: java">
+private Vector initGoalList(){
+...
+		Vector onGoalList = new Vector();
+		Vector otherList = new Vector();
+		Vector finalGoalList = new Vector();
+}
+</pre>
+
+まず、"○ on ○"の形をもつ目標状態を抽出し、onGoalListに格納する。</br>
+今回状態のなかで3wordなのは"○ on ○"のみなのでこの特性を利用している。</br>
+また、"○ on ○"以外の形を持つ目標状態をotherListに格納する。</br>
+<pre class="brush: java">
+private Vector initGoalList(){
+		for(Object s : goalList)
+		{
+			String str = (String)s;
+			String[] tmp = str.split(" ", 0);
+			if(tmp.length == 3)
+			{
+				onGoalList.addElement(s);
+			}
+			else
+			{
+				otherList.addElement(s);
+			}
+		}
+</pre>
+
+次に、onGoalList内の物体名の回数をそれぞれカウントする。</br>
+<pre class="brush: java">
+		Map＜String, Integer＞ m = new HashMap＜String, Integer＞();
+		// Java7以降なら new HashMap<>() でOK
+
+		for (Object s : onGoalList) {
+			String str = (String)s;
+			String[] tmp = str.split(" ", 0);
+			for(String t : tmp){
+
+				int v;
+				if (m.containsKey(t)) {
+					// Mapに登録済み
+					v = m.get(t) + 1;
+				} else {
+					// Mapに未登録
+					v = 1;
+				}
+				m.put((String)t, v);
+			}
+		}
+</pre>
+登場回数が1回だったものをoneListリストに記録した後、</br>
+しりとりの要領で、初めと終わりが1回のものになるようにソートする。</br>
+このとき、終わりが１回のものを最初に格納する。</br>
+<pre class="brush: java">
+		do{
+			for(Object s : onGoalList)
+			{
+				String str = (String)s;
+				String[] tmp = str.split(" ", 0);
+				//			System.out.println(s);
+				//			System.out.print(tmp[2]+',');
+				//			System.out.println(last);
+
+				if(Objects.equals(tmp[2],last)){
+					finalGoalList.add(s);
+					last = tmp[0];
+					x = tmp[0];
+					//	System.out.println("first="+first);
+					//	System.out.println("last="+last);
+
+				}
+
+			}
+		}while(!Objects.equals(first,x));
+</pre>
+
+<!--
+  ソースコードをはりつける時は <pre> タグを使う
+  class="brush: java" でシンタックスハイライトする
+  重要な部分のみを貼り付ければ良い
+-->
+
+
+
+<h3>実行例</h3>
+<!-- 実行例を示す．PNGやGIF等の絵を張っても良い．-->
+<p>
+問題例として5つの物体を動かす。</br>目標状態を"A on B","C on D","holding E","B on C"の順番で与えて実行した。</br>
+以下のような解(プラン)を得た。</br>
+<img src="./7-1-2.png"/>
+</br>
+なお10回実行してみたが全て同じ結果を得ている。</br>
+</p>
+
+<!-- 画像ファイルを貼る場合は <img> タグを使う -->
+<h2>発展課題7-7</h2>
+<!-- 以下，上記と同様 -->
+教科書3.3節のプランニング手法を応用できそうなブロック操作以外のタスクをグループで話し合い，新たなプランニング課題を自由に設定せよ．
+さらに，もし可能であれば，その自己設定課題を解くプランニングシステムを実装せよ． 
+<h3>独自仕様の説明</h3>
+<!--
+ もし自分で独自に決めた仕様があれば，その説明を書く．
+-->
+<p>ブロック操作以外のタスクとして、食事をする哲学者問題をプランニングによって解く。</p>食事をする哲学者問題とは、並列処理に関する問題例として昔から取り上げられている問題である。</br>
+
+<p>5人の哲学者が食事したり、考え事をしたりしている。かれらの前には、真ん中にスパゲッティの入った大きなボールが置かれた丸い食卓がある。その食卓には5枚の皿が置かれ、皿と皿の間にフォークが1本ずつ置かれている。
+
+スパゲッティをボールから取って自分の皿によそうには2本のフォークを必要とし、哲学者は一度に1本のフォークしかテーブルから取ることができない（左右の手で同時に両側にある2本のフォークを取ることはできない、という意味。まずどちらかの側のフォークを取ってから、逆の側のフォークを取る）。哲学者同士は決して会話をしない。このため、5人が左のフォークを手にとって右のフォークが食卓に置かれるのを待つという危険なデッドロック状態が発生する可能性がある。</p>
+本来この問題は解答例を前向きに推論して解を得ることができるか議論するような問題であるが、今回は後ろ向きに推論し、確実に解を得る(ある人物を食事状態にする)ことを目標とした。</br>
+また、人数は5人に固定する。</br>
+</br>
+以下のような配置を考える。</br>
+<img src="./Dining philosopher.png" width="60%" height="60%">
+</br>
+今回このプランニングを実装する上で必要と考える状態、ルールを以下に示す。</br>
+</br>
+<b>状態</b></br>
+・philosopher○ has fork △ on the left hand</br>
+・philosopher○ has fork △ on the right hand</br>
+・philosopher○ has nothing on the left hand</br>
+これは哲学者の右手、左手の状態を表す状態である。</br>
+○には哲学者の名前、△にはフォークの番号が入る。</br>
+哲学者の手があいている状態はnothingであらわす。</br>
+以上のような状態を常に人それぞれ10つ(5×2)用意し、誰がどのフォークを持っているかを管理する。</br></br>
+
+
+・philosopher○ is eating</br>
+これは哲学者○が食事をしている状態である。</br></br>
+・ontable fork △</br>
+これはフォーク△がテーブルにあることを示す状態である。</br></br>
+
+<b>初期状態</b></br>
+初期状態は、全員の哲学者がフォークを持っていなく、全てのフォークがテーブルに置かれた状態</br>
+</br>
+philosopher A has nothing on the left hand</br>
+philosopher A has nothing on the right hand</br>
+philosopher B has nothing on the left hand</br>
+philosopher B has nothing on the right hand</br>
+philosopher C has nothing on the left hand</br>
+philosopher C has nothing on the right hand</br>
+philosopher D has nothing on the left hand</br>
+philosopher D has nothing on the right hand</br>
+philosopher E has nothing on the left hand</br>
+philosopher E has nothing on the right hand</br>
+ontable fork 1</br>
+ontable fork 2</br>
+ontable fork 3</br>
+ontable fork 4</br>
+ontable fork 5</br>
+</br>
+としているが、矛盾を起こさない限り変更は可能である。</br></br>
+
+<b>目標状態</b></br>
+目標状態は、基本的に哲学者○が食事をしている状態を表す"philosopher○ is eating"とする。</br>
+ここも変更は可能である(フォークを片手に持っている状態など)</br></br>
+
+<b>ルール</b></br>
+Rule 1</br>
+NAME Eating philosopher A</br> 
+IF philosopher A has fork 1 on the left hand</br>
+   philosopher A has fork 5 on the right hand</br>
+ADD philosopher A is eating</br>
+DELETE</br>
+</br>
+Rule 2</br>
+NAME Eating philosopher B</br> 
+IF philosopher B has fork 2 on the left hand</br>
+   philosopher B has fork 1 on the right hand</br>
+ADD philosopher B is eating</br>
+DELETE -</br>
+...</br>
+</br>
+ルール1〜5では、それぞれの哲学者がゴール(食事状態)となる条件を与えている。</br>
+例えばルール1のIF部は哲学者Aが食事をするための条件を示しており、左手にフォーク1、右手にフォーク5を持つことで食事状態となる。</br>
+このようなルールを5人分設定している。</br>
+</br></br>
+Rule 6</br>
+NAME put fork ?y down on the table for philosopher ?x</br> 
+IF philosopher ?x has fork ?y on the ?a hand</br>
+ADD philosopher ?x has nothing on the ?a hand</br>
+  ontable fork ?y</br>
+DELETE philosopher ?x has fork ?y on the ?a hand</br>
+</br>
+ルール6では哲学者が持つフォークをテーブルに置く動作を示している。</br>
+哲学者?xがフォーク?yを?a手に持っている場合、そのフォークを置くことができる。</br>
+NAMEの?yにはフォーク番号が入り、?xには哲学者の名前が入る。また?aには右左が入る。</br>
+</br></br>
+Rule 7</br>
+NAME pick up fork ?y from the table for philosopher ?x</br> 
+IF ontable fork ?y</br>
+  philosopher ?x has nothing on the ?a hand</br>
+ADD philosopher ?x has fork ?y on the ?a hand</br>
+DELETE ontable fork ?y</br>
+  philosopher ?x has nothing on the ?a hand</br>
+</br>
+ルール7ではテーブルの上にあるフォークを哲学者が持つ操作を示している。</br>
+テーブルの上にfork ?yがあり、哲学者 ?xが?a手に何も持っていない場合、?yを手に取ることができる。</br>
+ルール6と同様NAMEの?yにはフォーク番号が入り、?xには哲学者の名前が入る。また?aには右左が入る。</br>
+<h3>プログラムの構造</h3>
+<!--  どのような設計をしたか．-->
+
+<p>
+配布されたPlannerプログラムからinitInitialState,initGoalList,initOperatorsを変更した。</br>
+変更内容は上で述べたので割愛する。</br>
+</p>
+
+
+<h3>実装の説明</h3>
+<!--
+ どう実装したか，ソースコードを詳細に説明する．
+ 特に重要な箇所はレポートにペーストして説明する．
+-->
+<p>
+同様に割愛する。</br>
+</p>
+
+<!--
+  ソースコードをはりつける時は <pre> タグを使う
+  class="brush: java" でシンタックスハイライトする
+  重要な部分のみを貼り付ければ良い
+-->
+
+
+<h3>実行例</h3>
+<p>
+<!-- 実行例を示す．PNGやGIF等の絵を張っても良い．-->
+初期状態を、哲学者Bがフォーク1とフォーク2を持っている状態</br>
+philosopher A has nothing on the left hand</br>
+philosopher A has nothing on the right hand</br>
+philosopher B has fork 2 on the left hand</br>
+philosopher B has fork 1 on the right hand</br>
+philosopher C has nothing on the left hand</br>
+philosopher C has nothing on the right hand</br>
+philosopher D has nothing on the left hand</br>
+philosopher D has nothing on the right hand</br>
+philosopher E has nothing on the left hand</br>
+philosopher E has nothing on the right hand</br>
+ontable fork 3</br>
+ontable fork 4</br>
+ontable fork 5</br>
+</p>
+とし、</br>
+目標状態を、AとCが食事をしている状態</br>
+philosopher A is eating</br>
+philosopher C is eating</br>
+としたときのplan(解)を以下に示す。</br></br>
+<!-- 画像ファイルを貼る場合は <img> タグを使う -->
+<img src="./7-7.png"/>
+</br>
+<p>
+解は、Bがフォーク1をテーブルに置き(2文目)、</br>
+Aが置いたフォーク1とフォーク5を手に取りAを食事状態とする(3,4文目)。</br>
+その後、Cがフォーク3を拾った後(6文目)、Bがフォーク2をテーブルに置き(7文目)、Cがフォーク2を取り上げている(8文目)。</br>
+</p>
+
+
+<h2>考察</h2>
+<b>課題7-1</b></br>
+<b>解決した問題点1</b></br>
+配布されたプログラムをそのまま実行すると、"Place A on A"など、Aの上にAを置く動作が確認できる。</br>
+この動作は、Aという物体が2つ以上存在しない限りあり得ない動作なのでこのエラーを修正する。</br>
+<b>原因</b></br>
+<p>
+目標を副目標に分解している際、目標状態リスト内に"holding A"という状態が存在することがある。</br>
+現在状態(CurrentState)内に"holding A"という状態が存在しない限り、目標"holding A"はさらに副目標に分解されることになる。</br>
+"holding ?x"がADD-Listに存在するルールはオペレーター2（テーブルの上から手への移動）とオペレーター3(ブロックの上から手への移動)である。
+本来オペレーター3を選択するべき場面でオペレーター2が選択されてしまった場合、次の副目標へ分解の際にプログラムはオペレーター1を選択することになる。そのときにブロックAはあるブロックの上から動かしたわけではないことから、?yに適切な値を入力することができなくなり、このエラーが生じる。</br>
+現実世界で実際にブロックを操作する際にブロックを手に取る("holding ?x")ことになるのは、あるブロックの上に存在するブロックを手に取るときと、テーブルの上にあるブロックを持ち上げるときである。例えば現実世界でブロックAがテーブルの上にあり、ブロックAを動かすべき状態になったとき、オペレーター2を選択するのが正しい選択となる。しかし、プランニングのプログラムでは、後ろ向きに推論しているためADDリストに"holding ?x"があるだけでそのオペレーターを選択してしまう。</br>
+</p>
+
+<b>解決策</b></br>
+<p>
+この問題を解決するには、状態を"holding A"ではなく"holding A from table"等、状態"holding"を細分化し、ルールで競合が起こらないようにするなどが考えられるが、ここではもっと簡潔にこの問題を解決する。</br>
+今回の課題7-1では、初期状態として全てのブロックはテーブルと接している形が与えられている。</br>
+ここで、この初期状態からブロックを最適な方法で操作することができるならば、あるブロックの上に存在するブロックを操作するオペレーター3は最適解に含まれることはないという事実を利用する。</br>
+よって、オペレーター3の優先度を最小にする。</br>
+またこれにより最適解を得られなくなる要因の競合は発生しなくなるので、最適解を得ることができる。</br>
+</p>
+
+<b>問題点</b></br>
+<p>
+今回の課題7-1では対象外であるが、初期状態も変更の対象となる場合この解決策では破綻する。</br>
+理由は解決策の欄でも述べたが、ブロックの上に存在するブロックを動かさないといけない初期状態が与えられたときにオペレーター3が選択されることがなくなり、無限ループに陥ってしまうからである。</br>
+</p></br>
+</br>
+
+<b>解決した問題点2</b></br>
+目標状態を"B on C"、"A on B"ではなく"A on B"、"B on C"のように物体の位置が上のものから入力してしまうと正しく解を得ることができない。</br>
+
+<b>原因</b></br>
+このプログラムは、目標を副目標に分解し、全ての副目標がCurrentListに存在する場合、目標の分解をやめ、動作を確定させている。</br>
+ゴールリストから分解対象を取り出すのは上から順番であるため、"A on B"を取り出し、AをBの上にのせる手順を確定させてしまうためにこのエラーが起こる。</br>
+<b>解決策</b></br>
+目標状態を格納するときに位置が下からとなるようにソートし、GoalListに格納する。</br></br></br>
+<b>課題7-7</b></br>
+<p>
+本プログラムでは、登場する哲学者それぞれの食事条件を与えているが、これはあまりスマートなやり方といえない。</br>初めはフォークに名前をつけることは考えていなかったが、フォークに名前をつけないと哲学者が1つ隣のフォークも手を伸ばして取ってしまい食事状態になることが考えられたので、フォークに名前をつけ、ゴール条件を哲学者それぞれ与えることによって、制御に成功した。</br>
+しかしルールの数が増えてしまうことや、哲学者の人数を増やすことはできないので、この制御方式は改善の余地が残されている。</br>
+
+</p>
+<p>
+また"ontable fork ○"という状態は"philosopher ○ has nothing on the △ hand"と持つ情報がかなり被っており、この状態を作成するか考えたが、</br>
+"ontable fork ○"という状態を追加することで、後ろ向き推論のルールを作成する際に方針がたてやすくなったり、また実行するユーザー側も"テーブルの上にfork○がある"と端末上に表示することで、実行過程が鮮明になると思いこの状態を追加した。</br>
+事実、例えば、"philosopher A has nothing on the left hand"（Aは左手に何も持っていない）,"philosopher B has nothing on the right hand"(Bは右手に何も持っていない)の2文を検査することででAとBの間に存在するフォーク1の行方はわかる(この例の場合は机に存在する)。これは全ての哲学者の右手、左手の情報(計10つ)が常にCurrentListに格納されているからである。</br>
+
+</p>
+
+<h2>感想</h2>
+今回の担当箇所はプログラムや構造をしっかりと理解しなければならない課題であったので完成に手間取った。</br>
+課題7-7では、実装までいけるか不安だったけどなんとか実装することができて良かった。</br>
+<hr>
+<h2>参考文献</h2>
+<!-- 参考文献を書く．助けてもらった人がいれば，それも書く-->
+
+<ul>
+  <li>グループ3のメンバー</li>
+  <li>新谷虎松 著（19XX）『知能プログラミング入門』コロナ社</li>
+
+</ul>
+
+</body>
+</html>
