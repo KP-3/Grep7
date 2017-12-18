@@ -226,6 +226,321 @@ private Vector initGoalList(){
 </br>
 なお10回実行してみたが全て同じ結果を得ている。</br>
 </p>
+<h2>課題7-2</h2>
+<!-- 課題を書く．-->
+教科書のプログラムでは，オペレータ間の競合解消戦略としてランダムなオペレータ選択を採用している．
+これを，効果的な競合解消戦略に改良すべく考察し，実装せよ．
+改良の結果，性能がどの程度向上したかを定量的に（つまり数字で）示すこと．
+
+<h3>独自仕様の説明</h3>
+<!--
+ もし自分で独自に決めた仕様があれば，その説明を書く．
+-->
+<p>今回の課題である、オペレータの競合解消戦略として副目標のゴールがaddリストに含まれるような
+オペレータの優先度を上げるという方針で競合解消を行った。</p>
+
+
+
+
+<h3>プログラムの構造</h3>
+<!--  どのような設計をしたか．-->
+<p>
+ブロック操作のプランニングを行うPlanner.javaの構造を以下に説明する。<br>
+まず実際にプランニングを行うPlannerクラスはメンバ変数としてオペレータ群を管理するベクタoperators、
+最終的に実行するオペレータを管理するベクタplanが宣言されている。<br>
+次に定義されているメソッドについて説明する。<br>
+プランニングを開始するstart()、プランニングを行うplanning()、一つのゴールに対してプランニングを行うplanningAGoal()、オペレータの変数を再定義するrename()、ゴールリストの初期化を行うinitGoalList()、初期状態の初期化を行うinitInitialState()、オペレータの初期化を行うInitOperators()<br>
+最後に競合解消を行うためのConfRes0()、このメソッドは自分が新たに実装した物である。
+</p>
+<p>
+次にオペレータについて定義しているOperatorクラスの説明をする。<br>
+まず、メンバ変数としてオペレータの名前name、前件ifList、後件addList、deleteListからなる。<br>
+そしてコンストラクタが定義されており、各メンバ変数の取得と削除、文字列化を行うメソッド、現在の状態にオペレータを適用させるapplyState(),変数を書き換えたオペレータを取得するgetRenamedOperator、変数束縛の適用を行うinstantiate()などからなる。
+</p>
+
+<h3>実装の説明</h3>
+<!--
+ どう実装したか，ソースコードを詳細に説明する．
+ 特に重要な箇所はレポートにペーストして説明する．
+-->
+<p>
+  実装したプログラムに関して，planning(),planningAGoal(),ConfRes0()について説明を行う。
+</p>
+
+<p>
+  下記は planning() メソッドの実装である。<br>
+ゴールが一つしか状態を持たないときはそのままplanningAGoal()を呼び出す。<br>
+ゴールリストが複数の要素からなる場合は、先頭から一つ要素を取り出し変数束縛と現在の状態のバックアップをとる。そして取り出したゴールについてplanningAGoalを実行する。探索に失敗したらバックアップから状態と変数束縛を復元しfalseを返す。<br>
+成功した場合はtrueを返す。<br>
+</p>
+
+<!--
+  ソースコードをはりつける時は <pre> タグを使う
+  class="brush: java" でシンタックスハイライトする
+  重要な部分のみを貼り付ければ良い
+-->
+<pre class="brush: java">
+ private boolean planning(Vector theGoalList,
+                          Vector theCurrentState,
+                          Hashtable theBinding){
+  System.out.println("*** GOALS ***" + theGoalList);
+  if(theGoalList.size() == 1){
+   String aGoal = (String)theGoalList.elementAt(0);
+   if(planningAGoal(aGoal,theCurrentState,theBinding,0) != -1){
+    return true;
+   } else {
+    return false;
+   }
+  } else {
+   String aGoal = (String)theGoalList.elementAt(0);
+   int cPoint = 0;
+   while(cPoint < operators.size()){
+    //System.out.println("cPoint:"+cPoint);
+    // Store original binding
+    Hashtable orgBinding = new Hashtable();
+    for(Enumeration e = theBinding.keys() ; e.hasMoreElements();){
+     String key = (String)e.nextElement();
+     String value = (String)theBinding.get(key);
+     orgBinding.put(key,value);
+    }
+    Vector orgState = new Vector();
+    for(int i = 0; i < theCurrentState.size() ; i++){
+     orgState.addElement(theCurrentState.elementAt(i));
+    }
+
+    int tmpPoint = planningAGoal(aGoal,theCurrentState,theBinding,cPoint);
+    //System.out.println("tmpPoint: "+tmpPoint);
+    if(tmpPoint != -1){
+     theGoalList.removeElementAt(0);
+//     System.out.println(theCurrentState);
+     if(planning(theGoalList,theCurrentState,theBinding)){
+      //System.out.println("Success !");
+      return true;
+     } else {
+      cPoint = tmpPoint;
+      //System.out.println("Fail::"+cPoint);
+      theGoalList.insertElementAt(aGoal,0);
+	  
+      theBinding.clear();
+      for(Enumeration e=orgBinding.keys();e.hasMoreElements();){
+       String key = (String)e.nextElement();
+       String value = (String)orgBinding.get(key);
+       theBinding.put(key,value);
+      }
+      theCurrentState.removeAllElements();
+      for(int i = 0 ; i < orgState.size() ; i++){
+       theCurrentState.addElement(orgState.elementAt(i));
+      }
+     }
+    } else {
+     theBinding.clear();
+     for(Enumeration e=orgBinding.keys();e.hasMoreElements();){
+      String key = (String)e.nextElement();
+      String value = (String)orgBinding.get(key);
+      theBinding.put(key,value);
+     }
+     theCurrentState.removeAllElements();
+     for(int i = 0 ; i < orgState.size() ; i++){
+      theCurrentState.addElement(orgState.elementAt(i));
+     }
+     return false;
+    }
+   }
+   return false;
+  }
+ }
+</pre>
+<p>次にplanningAGoal()について説明を行う。<br>
+まず、ゴールの状態が現在の状態に含まれていないかを探索し、含まれている場合は終了する。<br>
+含まれていなかった場合に何かしらのオペレータを実行する必要があるため、競合解消を行うためにConfRes0()を呼び出してオペレータを並べ替えておく。<br>
+ここでもあらかじめ変数束縛と現在の状態集合のバックアップを取った後に各オペレータのaddリストの各要素とゴールでunifyを行う。unifyに成功した場合はその変数束縛の元でオペレータを具体化し、オペレータのifリスト新しいゴールとする。<br>そしてその新しい副目標についてplanning()を再帰的に呼び出していき、最終的に探索が成功したときそのオペレータを実行する。<br>
+そのオペレータによって状態が変化するためapplyStateで現在の状態を操作後の状態に変化させる。<br>
+オペレータの探索に失敗した場合はバックアップから変数束縛と状態を探索前に復元する。
+</p>
+<pre class="brush: java">
+private int planningAGoal(String theGoal,Vector theCurrentState,
+                           Hashtable theBinding,int cPoint){
+  System.out.println("**"+theGoal);
+  int size = theCurrentState.size();
+  for(int i =  0; i < size ; i++){
+   String aState = (String)theCurrentState.elementAt(i);
+   if((new Unifier()).unify(theGoal,aState,theBinding)){
+    return 0;
+   }
+  }
+  /////////////////////////////////////////////////////////////
+     //変更箇所
+     ///////////////////////////////////////////////////////////
+//  System.out.println(operators);
+     ConfRes0(operators,theGoal,theBinding);
+//     for(Operator op: operators){
+//         System.out.println(op.name);
+//     }
+//  int randInt = Math.abs(rand.nextInt()) % operators.size();
+//  Operator op = (Operator)operators.elementAt(randInt);
+//  operators.removeElementAt(randInt);
+//  operators.addElement(op);
+
+  for(int i = cPoint ; i < operators.size() ; i++){
+   Operator anOperator = rename((Operator)operators.elementAt(i));
+   // 現在のCurrent state, Binding, planをbackup
+   Hashtable orgBinding = new Hashtable();
+   for(Enumeration e = theBinding.keys() ; e.hasMoreElements();){
+    String key = (String)e.nextElement();
+    String value = (String)theBinding.get(key);
+    orgBinding.put(key,value);
+   }
+   Vector orgState = new Vector();
+   for(int j = 0; j < theCurrentState.size() ; j++){
+    orgState.addElement(theCurrentState.elementAt(j));
+   }
+   Vector orgPlan = new Vector();
+   for(int j = 0; j < plan.size() ; j++){
+    orgPlan.addElement(plan.elementAt(j));
+   }
+
+   Vector addList = (Vector)anOperator.getAddList();
+   for(int j = 0 ; j < addList.size() ; j++){
+    if((new Unifier()).unify(theGoal,
+                             (String)addList.elementAt(j),
+                             theBinding)){
+     Operator newOperator = anOperator.instantiate(theBinding);
+     Vector newGoals = (Vector)newOperator.getIfList();
+     System.out.println(newOperator.name);
+     if(planning(newGoals,theCurrentState,theBinding)){
+    	 newOperator = newOperator.instantiate(theBinding);
+        
+//      System.out.println("new "+newOperator.name);
+      
+      plan.addElement(newOperator);
+      theCurrentState =
+       newOperator.applyState(theCurrentState);
+      System.out.println(newOperator.name);
+//      System.out.println(theCurrentState);
+      
+      return i+1;
+     } else {
+      // 失敗したら元に戻す．
+      theBinding.clear();
+      for(Enumeration e=orgBinding.keys();e.hasMoreElements();){
+       String key = (String)e.nextElement();
+       String value = (String)orgBinding.get(key);
+       theBinding.put(key,value);
+      }
+      theCurrentState.removeAllElements();
+      for(int k = 0 ; k < orgState.size() ; k++){
+       theCurrentState.addElement(orgState.elementAt(k));
+      }
+      plan.removeAllElements();
+      for(int k = 0 ; k < orgPlan.size() ; k++){
+       plan.addElement(orgPlan.elementAt(k));
+      }
+     }
+    }		
+   }
+  }
+  return -1;
+ }
+</pre>
+<p>
+次に競合解消を行うCOnfRes0()について説明を行う。<br>
+まず自分が考えた競合解消の方針は、目指すべきゴールリストを実現出来そうなオペレータの優先度を上げるという考え方である。<br>
+そのため各オペレータについてaddリストを取得し、引数で与えられた変数束縛の下でゴールとunifyする。
+unifyに成功したオペレータを一番上に持って行く作業を全てのオペレータについて行い最終的なオペレータのベクターを返すという物である。
+</p>
+<pre class="brush: java">
+public void ConfRes0(Vector&ltOperator&gt operators,String thegoal,Hashtable theBinding){
+	  for (int i=0;i&ltoperators.size();i++){
+	      
+	      Hashtable fbind = new Hashtable();
+	      for(String add: operators.elementAt(i).addList){
+	          
+	              if ((new Unifier()).unify(add, thegoal,theBinding)) {
+	                  
+	                  
+	              
+	          
+	          
+	        	    Operator op = operators.elementAt(i);
+	              operators.removeElementAt(i);
+	              operators.add(0,op);
+//	              System.out.println(fbind);
+//	              break;
+	          }
+	      }
+	  }
+      
+ }
+</pre>
+<h3>実行例</h3>
+<!-- 実行例を示す．PNGやGIF等の絵を張っても良い．-->
+<p>
+  ここでランダムに並び替えたデフォルトの状態とConfRes0()を行ったときの比較を行うが、定量評価の指標として同じゴールと初期状態でそれぞれ10回ずつプランニングを行ったときの平均操作回数を比較する。<br>
+なおその際に用いるゴールと初期状態は、以下の通りである。<br>
+</p>
+<h4>ゴール</h4>
+<ul>
+<li>B on A
+<li>C on B
+</ul>
+<h4>初期状態</h4>
+<ul>
+<li>clear B
+<li>clear C
+<li>C on A
+<li>ontable A
+<li>ontable B
+<li>handEmpty
+</ul>
+<p>そしてこのときの最適なプランは</p>
+<pre>
+remove C from on top A
+put C down on the table
+pick up B from the table
+Place B on A
+pick up C from the table
+Place C on B
+</pre>
+<!-- 画像ファイルを貼る場合は <img> タグを使う -->
+<table border="1">
+  <tr>
+    <td>戦略</td><td>平均操作回数</td>
+  </tr>
+  <tr>
+    <td>ランダム</td><td>48.9回</td>
+  </tr>
+  <tr>
+    <td>競合解消</td><td>6回</td>
+  </tr>
+</table>
+<p>
+以上のようにランダムなオペレータ選択では最適な操作回数の8倍以上も平均で必要になっている一方で、
+競合解消を行うと毎回最適な操作を行うことが出来ている。
+</p>
+
+
+<h2>考察</h2>
+<!--
+ 考察を書く．PNGやGIF等の絵を張っても良い．
+ 例: 自分で工夫して解決した点，その解決手法，なぜそうしたのか，その手法の素晴らしさ，上手くいかなかった点，なぜ上手くいかなかったのか，など．
+ 例: 今回はできなかったが，更に〜の機能を追加すべきである．なぜなら，...
+-->
+<p>
+  今回、競合解消戦略として自分はゴール状態を最も満足させられるような操作を選択するというアプローチを選んだ。この戦略で、テーブルに置かれてるブロックを積み上げていくことは最適な操作でゴールにたどり着くことができるようになったのだが、その逆で初期状態にブロックが積みあがった状態で、最終的にすべてのブロックがテーブルに置かれた状態をゴールとして目指すというのはできなかった。<br>
+  具体的に言うと積みあがったブロックを持ち上げてテーブルに置くという段階で副目標が無限ループに陥ってしまい再帰が終わらなくなってしまった。<br>
+  原因として考えられるのは、競合解消のためのオペレータを並べ替える段階で目標によって並びが固定されてしまうために副目標が永遠に解決されないことだと推測した。<br>
+  そのためブロック操作というテーマにおいて自分の考えた競合解消戦略は不完全だった、これとは別に二つ競合解消戦略を実装したかったが時間と構想を思いつくことができず断念したものがある。<br>
+  それがLEXとMEAである。この二つの戦略はインスタンシエーションにタイムタグを導入し、そのタイムタグの最新性を利用するものである。<br>
+  今回でいうとオペレータごとにいつその操作がなされたかという時系列がわかるような機構を用意しておき、それを基に競合したオペレータを並び替えるというものである。この方針であれば目標状態と比較するだけでなく最も新しく行われた操作が選ばれるためヒューリスティックス的なアプローチではあるがより柔軟なブロック操作のプランニングができるのではないかと考える。<br>
+  ただ、今回のオペレータの探索は後ろ向き推論を利用したものだが、LEXやMEAといった戦略は前向き推論がベースとなっているためどう実装していいかわからなかった。<br>
+  ほかにも二つ前に実行されたオペレータを記憶しておき、変数束縛で具体化して全く同じオペレータが選択されようとしていたらそのオペレータの優先度を下げるといった工夫もできるのではないかと実装してみたがplace A on Aという本来してはならない操作が表れてしまいうまくいかなかった。<br>
+  競合解消戦略ではないが、オペレータのstateの表記にも改善できる部分があると感じた。<br>
+  具体的に言うと、holding ?x という状態が、テーブルから持ち上げたのかブロックに乗った状態から持ち上げたのかわからず一緒くたになっているために競合が起きていると考える。
+  この状態を細分化し、holding ?x from tableとholding ?x from ?yの二つの状態で記述するようにすれば、ある程度操作を最適化できるのではないか。<br>
+  以上のことから、操作が競合したときの戦略を考えることも重要だが、不必要な競合が起きないような状態の記述の仕方を心がけることもプランニングをするうえで大切だと思った。<br>
+</p>
+
+
 <h2>課題7-3</h2>
 <!-- 課題を書く．-->
 上記7-2で改良したプランニングシステムのGUIを実装せよ．<br>
@@ -1955,7 +2270,13 @@ GUIは前回の課題で作ったやつをほとんどそのまま流用した�
 課題7-5で作ってほしいと言われたメソッドは方針が早めにできたので実装するのは用意であった。<br>
 他の授業で中間試験があったため、あまり多くの時間を割くことができなかった。<br>
 発展課題をやったり、他のメンバーの手伝いをしたかった。<br>
+<h3>27115077</h3>
+<p>
+前回の課題の後ろ向き推論に関する理解が完ぺきではなかったため、まずプランニングのソースを読み解くのに時間が掛かった。競合解消戦略自体はいろいろなアプローチが思いついたが完璧な戦略に至ることができなかったのは悔しい。
+また、自分のプログラミング力がまだまだ不足していると痛感したため鍛えていきたい。<br>
+自分はunityを少し触ったことがあるので、発展課題にも挑戦してみたかったが時間の都合でできなかった。
 
+</p>
 <hr>
 <h2>参考文献</h2>
 <!-- 参考文献を書く．助けてもらった人がいれば，それも書く-->
